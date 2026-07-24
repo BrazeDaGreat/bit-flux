@@ -1,26 +1,412 @@
 @import "tailwindcss";
 
+/* Dark mode is class-driven (set on <html> before paint), not media-driven,
+   because the user can override it in-app. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Palette: chalky risograph pastels rather than candy pastels — soft in the
+  surface tones, but the accents keep enough pigment to carry meaning in tags,
+  statuses and small feedback states.
+
+  Which is why the palette picker changes paper, not ink: the seven accents are
+  identical in every palette. What a palette swaps is the surface, ink and line
+  ramp — one set of inks, six papers.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --shadow-rgb: 38 35 46;
+
+  --paper: #ece8f6;
+  --paper-wash: #dfe7f7;
+  --surface: #fcfbfe;
+  --surface-2: #f4f1fa;
+  --surface-3: #ebe6f4;
+
+  --ink: #26232e;
+  --ink-soft: #635d70;
+  --ink-faint: #9d97a9;
+
+  --line: #e3ddef;
+  --line-strong: #d2cae3;
+
+  --iris: #6f5bd0;
+  --iris-soft: #e2dcfa;
+  --mint: #1f8f76;
+  --mint-soft: #d3f0e6;
+  --apricot: #c26a2c;
+  --apricot-soft: #fbe3ce;
+  --blush: #c04d75;
+  --blush-soft: #fbdce7;
+  --sky: #2b76ad;
+  --sky-soft: #d7eaf9;
+  --amber: #9a7811;
+  --amber-soft: #f7ecc6;
+  --sage: #5c7355;
+  --sage-soft: #e0ead9;
+
+  /* Composed from --shadow-rgb so a palette only has to restate its ink tint. */
+  --window-shadow: 0 1px 2px rgb(var(--shadow-rgb) / 0.04),
+    0 12px 28px -12px rgb(var(--shadow-rgb) / 0.16),
+    0 42px 70px -40px rgb(var(--shadow-rgb) / 0.28);
+  --rail-highlight: rgb(255 255 255 / 0.85);
+}
+
+.dark {
+  --shadow-rgb: 0 0 0;
+
+  --paper: #14121a;
+  --paper-wash: #171a24;
+  --surface: #1d1a25;
+  --surface-2: #252131;
+  --surface-3: #2e2839;
+
+  --ink: #eeeaf6;
+  --ink-soft: #a49db3;
+  --ink-faint: #736c81;
+
+  --line: #322c40;
+  --line-strong: #423a52;
+
+  --iris: #b3a4f2;
+  --iris-soft: #322a52;
+  --mint: #6fd3b6;
+  --mint-soft: #1c3b34;
+  --apricot: #e9a874;
+  --apricot-soft: #402c1c;
+  --blush: #eb9ab6;
+  --blush-soft: #3d2430;
+  --sky: #8cc2e8;
+  --sky-soft: #1e3243;
+  --amber: #d9bc63;
+  --amber-soft: #3a3118;
+  --sage: #a8c09f;
+  --sage-soft: #26301f;
+
+  --window-shadow: 0 1px 2px rgb(var(--shadow-rgb) / 0.3),
+    0 18px 40px -16px rgb(var(--shadow-rgb) / 0.55),
+    0 50px 80px -50px rgb(var(--shadow-rgb) / 0.7);
+  --rail-highlight: rgb(255 255 255 / 0.06);
+}
+
+/*
+  Paper stocks. Each palette restates only the stock ramp — surfaces, ink, lines
+  and the shadow tint — at the same lightness steps as the default above, so
+  contrast holds and the fixed accents stay legible on every one of them.
+
+  Selectors are :root.dark / :root:not(.dark) rather than bare attributes
+  because [data-palette] alone ties with .dark on specificity and, coming later
+  in the file, would win — the light stock would leak into dark mode.
+*/
+
+/* Mist — cool slate blue, the palette for a grey afternoon. */
+:root:not(.dark)[data-palette="mist"] {
+  --shadow-rgb: 33 38 47;
+  --paper: #e5ebf7;
+  --paper-wash: #d9e8f5;
+  --surface: #fbfcfe;
+  --surface-2: #eff3fb;
+  --surface-3: #e4eaf5;
+  --ink: #21262f;
+  --ink-soft: #58616d;
+  --ink-faint: #949daa;
+  --line: #dce2ee;
+  --line-strong: #c8d0e1;
+}
+:root.dark[data-palette="mist"] {
+  --paper: #10131b;
+  --paper-wash: #121924;
+  --surface: #171b24;
+  --surface-2: #1f2430;
+  --surface-3: #282e3b;
+  --ink: #e9edf6;
+  --ink-soft: #9ea6b6;
+  --ink-faint: #6d7583;
+  --line: #2b3140;
+  --line-strong: #3a4152;
+}
+
+/* Blossom — dusty rose. */
+:root:not(.dark)[data-palette="blossom"] {
+  --shadow-rgb: 46 33 39;
+  --paper: #f6e8ee;
+  --paper-wash: #f3e2ef;
+  --surface: #fefbfc;
+  --surface-2: #faf0f4;
+  --surface-3: #f1e4ea;
+  --ink: #2e2127;
+  --ink-soft: #6d5a62;
+  --ink-faint: #a8949d;
+  --line: #eddee5;
+  --line-strong: #dfcbd5;
+}
+:root.dark[data-palette="blossom"] {
+  --paper: #191115;
+  --paper-wash: #1e131c;
+  --surface: #211820;
+  --surface-2: #2b2029;
+  --surface-3: #342833;
+  --ink: #f7e9f0;
+  --ink-soft: #b39ca7;
+  --ink-faint: #806a75;
+  --line: #392b34;
+  --line-strong: #4a3944;
+}
+
+/* Meadow — pale sage green. */
+:root:not(.dark)[data-palette="meadow"] {
+  --shadow-rgb: 34 42 34;
+  --paper: #e7f0e6;
+  --paper-wash: #dcefe6;
+  --surface: #fbfdfa;
+  --surface-2: #eff5ee;
+  --surface-3: #e4ece2;
+  --ink: #222a22;
+  --ink-soft: #59645a;
+  --ink-faint: #95a095;
+  --line: #dde7db;
+  --line-strong: #c8d5c6;
+}
+:root.dark[data-palette="meadow"] {
+  --paper: #101410;
+  --paper-wash: #111a16;
+  --surface: #161c17;
+  --surface-2: #1e251f;
+  --surface-3: #262f27;
+  --ink: #eaf2e9;
+  --ink-soft: #a0aa9f;
+  --ink-faint: #6f786e;
+  --line: #2c342c;
+  --line-strong: #3b453b;
+}
+
+/* Sand — warm clay. Kept peachy on purpose; a neutral cream stock would read
+   as unprinted paper rather than a colour you chose. */
+:root:not(.dark)[data-palette="sand"] {
+  --shadow-rgb: 46 38 32;
+  --paper: #f7e9dc;
+  --paper-wash: #f6e0d8;
+  --surface: #fefcfa;
+  --surface-2: #faf2ea;
+  --surface-3: #f2e6d9;
+  --ink: #2e2620;
+  --ink-soft: #6d6053;
+  --ink-faint: #a89a8b;
+  --line: #ede0d2;
+  --line-strong: #dfcdb9;
+}
+:root.dark[data-palette="sand"] {
+  --paper: #181310;
+  --paper-wash: #1d1611;
+  --surface: #201a15;
+  --surface-2: #29221c;
+  --surface-3: #332a22;
+  --ink: #f6ece2;
+  --ink-soft: #b3a595;
+  --ink-faint: #807566;
+  --line: #382e26;
+  --line-strong: #493d32;
+}
+
+/* Frost — pale aqua. */
+:root:not(.dark)[data-palette="frost"] {
+  --shadow-rgb: 31 43 45;
+  --paper: #e2f0f2;
+  --paper-wash: #dbe9f3;
+  --surface: #fafdfd;
+  --surface-2: #ecf6f7;
+  --surface-3: #e1eef0;
+  --ink: #1f2b2d;
+  --ink-soft: #556568;
+  --ink-faint: #91a2a5;
+  --line: #d9e9eb;
+  --line-strong: #c2dade;
+}
+:root.dark[data-palette="frost"] {
+  --paper: #0e1416;
+  --paper-wash: #101a1e;
+  --surface: #151d1f;
+  --surface-2: #1c2528;
+  --surface-3: #243033;
+  --ink: #e6f2f4;
+  --ink-soft: #99abae;
+  --ink-faint: #68797c;
+  --line: #293437;
+  --line-strong: #384649;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-paper-wash: var(--paper-wash);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-iris: var(--iris);
+  --color-iris-soft: var(--iris-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-apricot: var(--apricot);
+  --color-apricot-soft: var(--apricot-soft);
+  --color-blush: var(--blush);
+  --color-blush-soft: var(--blush-soft);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+
+  /* Three type registers, three voices: the user's words, the app's chrome,
+     the machine's facts. */
+  --font-hand: var(--font-newsreader), Georgia, serif;
+  --font-ui: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-dm-mono), ui-monospace, monospace;
+
+  --radius-window: 26px;
+  --shadow-window: var(--window-shadow);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Base-layer, so a utility like `outline-none` can still override the focus
+   ring on controls whose wrapper draws the focus state instead. Unlayered
+   rules would beat every Tailwind utility. */
+@layer base {
+  html {
+    height: 100%;
+    color-scheme: light;
+  }
+
+  .dark html,
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    min-height: 100%;
+    background-color: var(--paper);
+    /* Two off-axis washes keep the page behind the window from reading as
+       flat grey without tipping into a decorative gradient. */
+    background-image:
+      radial-gradient(120% 90% at 12% -10%, var(--paper-wash) 0%, transparent 55%),
+      radial-gradient(100% 80% at 100% 110%, var(--paper-wash) 0%, transparent 50%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--iris-soft);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--iris);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* A row's detail unfolds from under its title rather than appearing whole —
+   short enough to read as one movement, not an entrance. */
+@keyframes flux-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A side panel arrives from the edge it lives on. */
+@keyframes flux-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flux-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.flux-spin {
+  animation: flux-rotate 900ms linear infinite;
+  transform-origin: center;
+}
+
+/* Form controls share one shape across the app. In the components layer so
+   utilities still win where a field needs to differ. */
+@layer components {
+  .input,
+  .select {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface-2);
+    padding: 0.6rem 0.85rem;
+    font-size: 0.85rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 150ms ease;
+  }
+  .input::placeholder {
+    color: var(--ink-faint);
+  }
+  .input:focus,
+  .select:focus {
+    border-color: var(--iris);
+    /* The border is the focus state here; the base ring would double it. */
+    outline: none;
+  }
+  textarea.input {
+    resize: vertical;
+    min-height: 4.5rem;
+    line-height: 1.55;
+  }
+
+  /* A control whose focus state is drawn by its wrapper. */
+  .bare-field:focus,
+  .bare-field:focus-visible {
+    outline: none;
+  }
+}
+
+/* The window's own scroll area — keep the scrollbar quiet so the frame reads
+   as one continuous object. */
+.flux-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.flux-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.flux-scroll::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
