@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { currentUser, pbServer } from "@/lib/pb-server";
-import { loadSettings, toEmbedConfig } from "@/lib/settings-server";
 import { searchThoughts } from "@/lib/search";
 import type { AskScope } from "@/lib/types";
 
@@ -14,10 +13,8 @@ export async function POST(request: Request) {
   if (!query) return NextResponse.json({ hits: [], mode: "keyword" });
 
   const client = await pbServer();
-  const settings = await loadSettings(client, user.id);
 
   const result = await searchThoughts(client, query, {
-    embed: toEmbedConfig(settings),
     scope: body.scope,
     limit: 25,
   });

@@ -32,7 +32,6 @@ interface Group {
 interface SearchHit {
   id: string;
   title: string;
-  via: "both" | "meaning" | "words";
 }
 
 export default function ThoughtsList({
@@ -55,7 +54,6 @@ export default function ThoughtsList({
   const [open, setOpen] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchHit[] | null>(null);
-  const [mode, setMode] = useState("");
   const [searching, setSearching] = useState(false);
 
   function withParam(key: string, value: string | null) {
@@ -122,9 +120,8 @@ export default function ThoughtsList({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ q }),
       });
-      const data = (await res.json()) as { hits?: SearchHit[]; mode?: string };
+      const data = (await res.json()) as { hits?: SearchHit[] };
       setResults(data.hits ?? []);
-      setMode(data.mode ?? "");
     } finally {
       setSearching(false);
     }
@@ -161,7 +158,7 @@ export default function ThoughtsList({
         <section>
           <Header
             label={`${results.length} ${results.length === 1 ? "match" : "matches"}`}
-            note={mode === "hybrid" ? "words + meaning" : "words"}
+            note="words"
             action={
               <button
                 type="button"
@@ -190,11 +187,6 @@ export default function ThoughtsList({
                     <span className="min-w-0 flex-1 truncate text-[0.88rem] text-ink">
                       {hit.title}
                     </span>
-                    {hit.via !== "words" && (
-                      <span className="shrink-0 font-data text-[0.62rem] text-ink-faint">
-                        meaning
-                      </span>
-                    )}
                   </Link>
                 </li>
               ))}
