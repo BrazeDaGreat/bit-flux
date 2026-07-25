@@ -1,12 +1,11 @@
 import { chat, type ProviderConfig } from "./provider";
 import type { ExtractedThought, ExtractionResult } from "./types";
-import type { CollectionRecord, DatePrecision, TagRecord } from "../types";
+import type { DatePrecision, TagRecord } from "../types";
 
 const PRECISIONS: DatePrecision[] = ["exact", "day", "week", "month", "vague"];
 
 export interface ExtractionContext {
   tags: Pick<TagRecord, "name" | "description">[];
-  collections: Pick<CollectionRecord, "name" | "kind" | "description">[];
   /** Local time where the dump was written, so "tonight" resolves correctly. */
   capturedAt: Date;
   timeZone: string;
@@ -41,23 +40,12 @@ export function buildSystemPrompt(context: ExtractionContext): string {
         .join("\n")
     : "(none yet)";
 
-  const collectionList = context.collections.length
-    ? context.collections
-        .map(
-          (c) => `- ${c.name} [${c.kind}]: ${c.description || "(no description)"}`
-        )
-        .join("\n")
-    : "(none yet)";
-
   return `You sort a person's raw brain dump into separate thoughts. You are a librarian, not an author.
 
 CAPTURE TIME: ${localStamp(context.capturedAt, context.timeZone)} (timezone ${context.timeZone})
 
 THE USER'S EXISTING TAGS — match against these before inventing anything; the descriptions tell you what each one means to this person:
 ${tagList}
-
-THE USER'S PROJECTS, TOPICS AND PEOPLE:
-${collectionList}
 
 RULES
 1. Split only genuinely separate thoughts. One idea stays one thought, however long. Do not split a single thought into steps.
@@ -73,7 +61,7 @@ RULES
       : "only when the user explicitly asks to be reminded. Otherwise leave it null."
   }
 6. tags: only names from the existing list. If a recurring topic has no tag, put it in suggested_tags with a one-line description of when it should apply. Suggested tags are proposals; do not treat them as applied.
-7. confidence 0-1. Below 0.7 means you were unsure about the split, tags, project, or a date. Never guess silently; lower the confidence instead.
+7. confidence 0-1. Below 0.7 means you were unsure about the split, tags, or a date. Never guess silently; lower the confidence instead.
 ${
   corrections.length
     ? `\nHOW THIS USER LIKES THINGS ORGANISED (learned from their own corrections):\n${corrections.map((c) => `- ${c}`).join("\n")}`
@@ -81,7 +69,7 @@ ${
 }
 
 Return JSON only, this exact shape:
-{"thoughts":[{"title":string,"body":string,"tags":string[],"suggested_tags":[{"name":string,"description":string}],"people":string[],"project":string|null,"action_date":string|null,"deadline":string|null,"reminder_at":string|null,"resurface_at":string|null,"date_precision":string|null,"date_source_text":string|null,"confidence":number}]}
+{"thoughts":[{"title":string,"body":string,"tags":string[],"suggested_tags":[{"name":string,"description":string}],"people":string[],"action_date":string|null,"deadline":string|null,"reminder_at":string|null,"resurface_at":string|null,"date_precision":string|null,"date_source_text":string|null,"confidence":number}]}
 Dates are ISO 8601 with an offset. Use null, never an empty string, for anything absent.`;
 }
 
@@ -151,7 +139,6 @@ function normalise(
     tags,
     suggested_tags: suggested,
     people: Array.isArray(raw.people) ? raw.people.map(asString).filter(Boolean) : [],
-    project: asString(raw.project) || null,
     action_date: asDate(raw.action_date),
     deadline: asDate(raw.deadline),
     // The prompt already restricts this to explicit requests unless the user

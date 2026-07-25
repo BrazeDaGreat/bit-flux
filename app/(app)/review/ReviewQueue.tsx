@@ -106,7 +106,7 @@ export default function ReviewQueue({
         <p className="font-hand text-[1.05rem] text-ink">Nothing to check.</p>
         <p className="mt-1 text-[0.8rem] text-ink-soft">
           Thoughts land here when the AI wasn&apos;t confident about the split,
-          tags, project, or a date.
+          tags, or a date.
         </p>
         <Link
           href="/thoughts"
@@ -315,7 +315,6 @@ function SplitDialog({
       body: second.trim(),
       status: "open",
       tags: thought.tags ?? [],
-      project: thought.project || "",
       confidence: 1,
       needs_review: false,
       edited_at: new Date().toISOString(),

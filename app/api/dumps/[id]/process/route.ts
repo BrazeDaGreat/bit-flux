@@ -10,12 +10,7 @@ import {
 import { ProviderError } from "@/lib/ai/provider";
 import { embedOne, thoughtEmbedText } from "@/lib/ai/embeddings";
 import { extractThoughts } from "@/lib/ai/extract";
-import type {
-  CollectionRecord,
-  DumpRecord,
-  TagRecord,
-  ThoughtRecord,
-} from "@/lib/types";
+import type { DumpRecord, TagRecord, ThoughtRecord } from "@/lib/types";
 import { TAG_COLORS } from "@/lib/types";
 
 /** Confidence under this lands in the review queue instead of being trusted. */
@@ -56,23 +51,13 @@ export async function POST(
   await client.collection("flux_dumps").update(dump.id, { status: "processing" });
 
   try {
-    const [tags, collections] = await Promise.all([
-      client.collection("flux_tags").getFullList<TagRecord>({
-        filter: "approved = true",
-        sort: "-usage_count",
-      }),
-      client.collection("flux_collections").getFullList<CollectionRecord>({
-        filter: "archived != true",
-      }),
-    ]);
+    const tags = await client.collection("flux_tags").getFullList<TagRecord>({
+      filter: "approved = true",
+      sort: "-usage_count",
+    });
 
     const result = await extractThoughts(config, dump.text, {
       tags: tags.map((t) => ({ name: t.name, description: t.description })),
-      collections: collections.map((c) => ({
-        name: c.name,
-        kind: c.kind,
-        description: c.description,
-      })),
       capturedAt: new Date((dump.captured_at || dump.created).replace(" ", "T")),
       timeZone: dump.capture_tz || "UTC",
       autoReminders: Boolean(settings?.auto_reminders),
@@ -88,9 +73,6 @@ export async function POST(
     );
 
     const tagByName = new Map(tags.map((t) => [t.name.toLowerCase(), t]));
-    const collectionByName = new Map(
-      collections.map((c) => [c.name.toLowerCase(), c])
-    );
     const tagUsage = new Map<string, number>();
     const created: ThoughtRecord[] = [];
 
@@ -101,28 +83,6 @@ export async function POST(
         if (!tag) continue;
         tagIds.push(tag.id);
         tagUsage.set(tag.id, (tagUsage.get(tag.id) ?? 0) + 1);
-      }
-
-      let projectId = "";
-      if (thought.project) {
-        const existing = collectionByName.get(thought.project.toLowerCase());
-        if (existing) {
-          projectId = existing.id;
-        } else {
-          // Projects surface from what the user writes about; tags are the
-          // thing they explicitly approve.
-          const made = await client
-            .collection("flux_collections")
-            .create<CollectionRecord>({
-              user: user.id,
-              name: thought.project,
-              kind: "project",
-              description: "",
-              color: TAG_COLORS[collectionByName.size % TAG_COLORS.length],
-            });
-          collectionByName.set(made.name.toLowerCase(), made);
-          projectId = made.id;
-        }
       }
 
       const vector = embedConfig
@@ -137,7 +97,6 @@ export async function POST(
         body: thought.body,
         status: "open",
         tags: tagIds,
-        project: projectId,
         people: thought.people.map((name) => ({ name })),
         action_date: thought.action_date ?? "",
         deadline: thought.deadline ?? "",

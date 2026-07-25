@@ -9,17 +9,12 @@ import FilterMenu, {
   FilterChips,
   type FilterGroup,
 } from "@/components/FilterMenu";
-import type {
-  CollectionRecord,
-  TagRecord,
-  ThoughtRecord,
-} from "@/lib/types";
+import type { TagRecord, ThoughtRecord } from "@/lib/types";
 import { toDate } from "@/lib/time";
 
 const VIEWS: FilterGroup["options"] = [
   { value: "list", label: "Recent" },
   { value: "scheduled", label: "By date" },
-  { value: "project", label: "By project" },
   { value: "tag", label: "By tag" },
 ];
 
@@ -37,13 +32,11 @@ interface SearchHit {
 export default function ThoughtsList({
   groups,
   tags,
-  projects,
   people,
   total,
 }: {
   groups: Group[];
   tags: TagRecord[];
-  projects: CollectionRecord[];
   people: string[];
   total: number;
 }) {
@@ -80,12 +73,6 @@ export default function ThoughtsList({
         tone: t.color || "iris",
       })),
       value: params.get("tag") ?? undefined,
-    },
-    {
-      key: "project",
-      label: "Project",
-      options: projects.map((p) => ({ value: p.id, label: p.name })),
-      value: params.get("project") ?? undefined,
     },
     {
       key: "person",
@@ -219,7 +206,6 @@ export default function ThoughtsList({
                     key={thought.id}
                     thought={thought}
                     tags={tags}
-                    projects={projects}
                     expanded={open === thought.id}
                     onToggle={() =>
                       setOpen(open === thought.id ? null : thought.id)
@@ -271,13 +257,11 @@ function Header({
 function Row({
   thought,
   tags,
-  projects,
   expanded,
   onToggle,
 }: {
   thought: ThoughtRecord;
   tags: TagRecord[];
-  projects: CollectionRecord[];
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -288,7 +272,6 @@ function Row({
   const rowTags = (thought.tags ?? [])
     .map((id) => tags.find((t) => t.id === id))
     .filter((t): t is TagRecord => Boolean(t));
-  const project = projects.find((p) => p.id === thought.project);
 
   return (
     <li className="border-b border-line/60 last:border-b-0">
@@ -368,7 +351,6 @@ function Row({
             {thought.date_source_text && (
               <Detail label="you wrote" value={`“${thought.date_source_text}”`} />
             )}
-            {project && <Detail label="project" value={project.name} />}
             {(thought.people?.length ?? 0) > 0 && (
               <Detail
                 label="people"

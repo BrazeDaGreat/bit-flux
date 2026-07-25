@@ -6,7 +6,6 @@ import { loadSettings } from "@/lib/settings-server";
 import type {
   AskScope,
   ChatRecord,
-  CollectionRecord,
   MessageRecord,
   TagRecord,
   ThoughtRecord,
@@ -17,7 +16,6 @@ export default async function AskPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    project?: string;
     tag?: string;
     q?: string;
     chat?: string;
@@ -29,14 +27,10 @@ export default async function AskPage({
   const params = await searchParams;
   const client = await pbServer();
 
-  const [tags, projects, thoughts, settings, chats, history] = await Promise.all([
+  const [tags, thoughts, settings, chats, history] = await Promise.all([
     client
       .collection("flux_tags")
       .getFullList<TagRecord>({ filter: "approved = true", sort: "name" })
-      .catch(() => []),
-    client
-      .collection("flux_collections")
-      .getFullList<CollectionRecord>({ filter: 'kind = "project"', sort: "name" })
       .catch(() => []),
     client
       .collection("flux_thoughts")
@@ -65,7 +59,6 @@ export default async function AskPage({
   ].sort();
 
   const scope: AskScope = {};
-  if (params.project) scope.project = params.project;
   if (params.tag) scope.tag = params.tag;
 
   if (!settings?.api_key_enc || !settings.model) {
@@ -88,7 +81,6 @@ export default async function AskPage({
   return (
     <AskRoom
       tags={tags}
-      projects={projects}
       people={people}
       initialScope={Object.keys(scope).length ? scope : undefined}
       initialQuestion={params.q ?? ""}

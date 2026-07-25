@@ -2,17 +2,12 @@ import { redirect } from "next/navigation";
 
 import { currentUser, pbServer } from "@/lib/pb-server";
 import { dayKey, dayLabel, toDate } from "@/lib/time";
-import type {
-  CollectionRecord,
-  TagRecord,
-  ThoughtRecord,
-} from "@/lib/types";
+import type { TagRecord, ThoughtRecord } from "@/lib/types";
 import ThoughtsList from "./ThoughtsList";
 
 type Params = {
   view?: string;
   tag?: string;
-  project?: string;
   person?: string;
   status?: string;
 };
@@ -20,7 +15,6 @@ type Params = {
 function buildFilter(params: Params): string {
   const parts: string[] = [];
   if (params.tag) parts.push(`tags ~ "${params.tag}"`);
-  if (params.project) parts.push(`project = "${params.project}"`);
   if (params.person) parts.push(`people ~ "${params.person.replace(/"/g, '\\"')}"`);
   if (params.status) parts.push(`status = "${params.status}"`);
   return parts.join(" && ");
@@ -30,8 +24,7 @@ function buildFilter(params: Params): string {
 function group(
   thoughts: ThoughtRecord[],
   view: string,
-  tags: TagRecord[],
-  projects: CollectionRecord[]
+  tags: TagRecord[]
 ) {
   if (view === "tag") {
     const groups = tags
@@ -43,19 +36,6 @@ function group(
       .filter((g) => g.items.length > 0);
     const untagged = thoughts.filter((t) => (t.tags ?? []).length === 0);
     if (untagged.length) groups.push({ key: "none", label: "No tag", items: untagged });
-    return groups;
-  }
-
-  if (view === "project") {
-    const groups = projects
-      .map((project) => ({
-        key: project.id,
-        label: project.name,
-        items: thoughts.filter((t) => t.project === project.id),
-      }))
-      .filter((g) => g.items.length > 0);
-    const loose = thoughts.filter((t) => !t.project);
-    if (loose.length) groups.push({ key: "none", label: "No project", items: loose });
     return groups;
   }
 
@@ -101,7 +81,7 @@ export default async function ThoughtsPage({
   const client = await pbServer();
   const filter = buildFilter(params);
 
-  const [thoughtsPage, tags, projects] = await Promise.all([
+  const [thoughtsPage, tags] = await Promise.all([
     client
       .collection("flux_thoughts")
       .getList<ThoughtRecord>(1, 200, {
@@ -112,10 +92,6 @@ export default async function ThoughtsPage({
     client
       .collection("flux_tags")
       .getFullList<TagRecord>({ filter: "approved = true", sort: "name" })
-      .catch(() => []),
-    client
-      .collection("flux_collections")
-      .getFullList<CollectionRecord>({ filter: 'kind = "project"', sort: "name" })
       .catch(() => []),
   ]);
 
@@ -134,9 +110,8 @@ export default async function ThoughtsPage({
 
       <div className="mt-5">
         <ThoughtsList
-          groups={group(thoughts, view, tags, projects)}
+          groups={group(thoughts, view, tags)}
           tags={tags}
-          projects={projects}
           people={people}
           total={thoughts.length}
         />

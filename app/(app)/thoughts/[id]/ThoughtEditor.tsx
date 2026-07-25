@@ -141,7 +141,6 @@ export default function ThoughtEditor({
             pathname: "/ask",
             query: {
               q: `What else do I have about ${thought.title}?`,
-              ...(thought.project ? { project: thought.project } : {}),
             },
           }}
           className="shrink-0 font-data text-[0.7rem] text-iris hover:underline"

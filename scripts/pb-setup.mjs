@@ -151,24 +151,6 @@ const definitions = [
   }),
 
   () => ({
-    name: "flux_collections",
-    type: "base",
-    ...OWNER_RULES,
-    fields: [
-      relation("user", ids.users, { required: true, cascadeDelete: true }),
-      text("name", { required: true, max: 200 }),
-      select("kind", ["project", "topic", "person"]),
-      text("description", { max: 2000 }),
-      text("color", { max: 40 }),
-      bool("archived"),
-      ...timestamps(),
-    ],
-    indexes: [
-      "CREATE UNIQUE INDEX `idx_flux_collections_user_name` ON `flux_collections` (`user`, `name`)",
-    ],
-  }),
-
-  () => ({
     name: "flux_tags",
     type: "base",
     ...OWNER_RULES,
@@ -199,7 +181,6 @@ const definitions = [
       editor("body"),
       select("status", ["open", "done", "archived"]),
       relation("tags", ids.flux_tags, { maxSelect: 30 }),
-      relation("project", ids.flux_collections, {}),
       json("people"),
       date("action_date"),
       date("deadline"),
@@ -272,7 +253,7 @@ const definitions = [
     fields: [
       relation("user", ids.users, { required: true, cascadeDelete: true }),
       text("title", { max: 300 }),
-      // Optional narrowing: project, tag, person, date range.
+      // Optional narrowing: tag, person, date range.
       json("scope"),
       ...timestamps(),
     ],

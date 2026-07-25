@@ -18,7 +18,6 @@ import { stripReasoning } from "@/lib/text";
 import type {
   AskScope,
   Citation,
-  CollectionRecord,
   MessageRecord,
   TagRecord,
 } from "@/lib/types";
@@ -104,7 +103,6 @@ function subscribeSidebar(notify: () => void) {
 
 export default function AskRoom({
   tags,
-  projects,
   people,
   initialScope,
   initialQuestion = "",
@@ -113,7 +111,6 @@ export default function AskRoom({
   openChatMessages = [],
 }: {
   tags: TagRecord[];
-  projects: CollectionRecord[];
   people: string[];
   initialScope?: AskScope;
   initialQuestion?: string;
@@ -199,12 +196,6 @@ export default function AskRoom({
   /** The same control the Thoughts screen uses, so "narrow this down" looks
    *  and behaves identically wherever it appears. */
   const scopeGroups: FilterGroup[] = [
-    {
-      key: "project",
-      label: "Project",
-      options: projects.map((p) => ({ value: p.id, label: p.name })),
-      value: scope.project,
-    },
     {
       key: "tag",
       label: "Tag",

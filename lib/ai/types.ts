@@ -14,7 +14,6 @@ export interface ExtractedThought {
   /** New tags the model wants — never applied until the user approves. */
   suggested_tags: { name: string; description: string }[];
   people: string[];
-  project: string | null;
   action_date: string | null;
   deadline: string | null;
   reminder_at: string | null;

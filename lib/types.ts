@@ -32,7 +32,6 @@ export interface ThoughtRecord extends RecordModel {
   body: string;
   status: "open" | "done" | "archived";
   tags: string[];
-  project: string;
   people: { name: string; collection_id?: string }[] | null;
   action_date: string;
   deadline: string;
@@ -59,15 +58,6 @@ export interface TagRecord extends RecordModel {
   origin: "user" | "ai_suggested";
   approved: boolean;
   usage_count: number;
-}
-
-export interface CollectionRecord extends RecordModel {
-  user: string;
-  name: string;
-  kind: "project" | "topic" | "person";
-  description: string;
-  color: string;
-  archived: boolean;
 }
 
 export interface SettingsRecord extends RecordModel {
@@ -112,7 +102,6 @@ export interface ChatRecord extends RecordModel {
 }
 
 export interface AskScope {
-  project?: string;
   tag?: string;
   person?: string;
   from?: string;

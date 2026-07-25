@@ -26,7 +26,6 @@ function esc(value: string): string {
 export function scopeFilter(scope: AskScope | undefined): string[] {
   if (!scope) return [];
   const parts: string[] = [];
-  if (scope.project) parts.push(`project = "${esc(scope.project)}"`);
   if (scope.tag) parts.push(`tags ~ "${esc(scope.tag)}"`);
   if (scope.person) parts.push(`people ~ "${esc(scope.person)}"`);
   if (scope.from) parts.push(`created >= "${esc(scope.from)}"`);
