@@ -1,26 +1,37 @@
 import { NextResponse } from "next/server";
 
 import { currentUser, pbServer } from "@/lib/pb-server";
+import { loadSettings, toEmbedConfig } from "@/lib/settings-server";
 import {
-  loadSettings,
-  MissingKeyError,
-  toEmbedConfig,
-  toProviderConfig,
-} from "@/lib/settings-server";
+  MissingModelError,
+  MissingProviderError,
+  resolveChatConfig,
+} from "@/lib/providers-server";
 import { ProviderError } from "@/lib/ai/provider";
 import { embedOne, thoughtEmbedText } from "@/lib/ai/embeddings";
 import { extractThoughts } from "@/lib/ai/extract";
-import type { DumpRecord, TagRecord, ThoughtRecord } from "@/lib/types";
+import type {
+  DumpRecord,
+  ModelRef,
+  TagRecord,
+  ThoughtRecord,
+} from "@/lib/types";
 import { TAG_COLORS } from "@/lib/types";
 
 /** Confidence under this lands in the review queue instead of being trusted. */
 const REVIEW_THRESHOLD = 0.7;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  // The model the capture screen had selected. Absent means "whatever is
+  // stored" — a retry from elsewhere still works.
+  const override = await request
+    .json()
+    .then((body: { model?: ModelRef }) => body?.model ?? null)
+    .catch(() => null);
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
@@ -37,10 +48,16 @@ export async function POST(
 
   let config;
   try {
-    config = toProviderConfig(settings);
+    config = await resolveChatConfig(client, user.id, settings, override);
   } catch (err) {
-    if (err instanceof MissingKeyError) {
+    if (err instanceof MissingProviderError) {
       return NextResponse.json({ error: err.message, needs_key: true }, { status: 400 });
+    }
+    if (err instanceof MissingModelError) {
+      return NextResponse.json(
+        { error: err.message, needs_model: true },
+        { status: 400 }
+      );
     }
     throw err;
   }

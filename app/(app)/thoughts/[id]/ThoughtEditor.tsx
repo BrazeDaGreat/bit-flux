@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Caret, TagChip } from "@/components/Chips";
 import { pb } from "@/lib/pb";
+import { statusPatch } from "@/lib/thought-actions";
 import { clockTime, relativeTime, toDate } from "@/lib/time";
 import type {
   DumpRecord,
@@ -57,7 +58,7 @@ export default function ThoughtEditor({
   const [error, setError] = useState<string | null>(null);
 
   /** Every user edit snapshots the previous state first, so nothing is lost. */
-  async function patch(data: Partial<ThoughtRecord>) {
+  async function patch(data: Record<string, unknown>) {
     setSaving(true);
     setError(null);
     try {
@@ -255,7 +256,7 @@ export default function ThoughtEditor({
                   <button
                     key={status.value}
                     type="button"
-                    onClick={() => void patch({ status: status.value })}
+                    onClick={() => void patch(statusPatch(status.value))}
                     aria-pressed={on}
                     className={`flex-1 rounded-full py-1 text-[0.72rem] transition-colors ${
                       on ? "" : "text-ink-soft hover:text-ink"

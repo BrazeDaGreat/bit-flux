@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { currentUser, pbServer } from "@/lib/pb-server";
+import { loadSettings, toEmbedConfig } from "@/lib/settings-server";
 import {
-  loadSettings,
-  MissingKeyError,
-  toEmbedConfig,
-  toProviderConfig,
-} from "@/lib/settings-server";
+  MissingModelError,
+  MissingProviderError,
+  resolveChatConfig,
+} from "@/lib/providers-server";
 import { askQuestion } from "@/lib/ai/ask";
 import { ProviderError } from "@/lib/ai/provider";
 import { searchThoughts } from "@/lib/search";
-import type { AskScope, ChatRecord, DumpRecord } from "@/lib/types";
+import type { AskScope, ChatRecord, DumpRecord, ModelRef } from "@/lib/types";
 
 /** Enough context to answer well without burning the whole window. */
 const RETRIEVE = 14;
@@ -23,6 +23,9 @@ export async function POST(request: Request) {
     question?: string;
     chat_id?: string;
     scope?: AskScope;
+    /** What the picker had selected when Ask was pressed. Falls back to the
+     *  stored choice. */
+    model?: ModelRef;
   };
 
   const question = body.question?.trim();
@@ -35,11 +38,17 @@ export async function POST(request: Request) {
 
   let config;
   try {
-    config = toProviderConfig(settings);
+    config = await resolveChatConfig(client, user.id, settings, body.model);
   } catch (err) {
-    if (err instanceof MissingKeyError) {
+    if (err instanceof MissingProviderError) {
       return NextResponse.json(
-        { error: "Add an API key in Settings to use Ask.", needs_key: true },
+        { error: "Add a provider in Settings to use Ask.", needs_key: true },
+        { status: 400 }
+      );
+    }
+    if (err instanceof MissingModelError) {
+      return NextResponse.json(
+        { error: "Pick a model first.", needs_model: true },
         { status: 400 }
       );
     }

@@ -60,12 +60,42 @@ export interface TagRecord extends RecordModel {
   usage_count: number;
 }
 
-export interface SettingsRecord extends RecordModel {
+export type ProviderKind =
+  | "openai"
+  | "groq"
+  | "gemini"
+  | "openrouter"
+  | "custom";
+
+/** One connected account. A user can hold several. */
+export interface ProviderRecord extends RecordModel {
   user: string;
-  provider: "openai" | "groq" | "gemini" | "openrouter" | "custom" | "";
+  provider: ProviderKind;
+  /** The user's own name for it — two custom endpoints need telling apart. */
+  label: string;
   base_url: string;
   api_key_enc: string;
+  /** The models this connection is allowed to offer, picked in Settings.
+   *  Endpoints list hundreds; the picker shows only these. */
+  models: string[] | null;
+}
+
+/** A model, and the connection it is reached through. */
+export interface ModelRef {
+  provider: string;
   model: string;
+}
+
+export interface SettingsRecord extends RecordModel {
+  user: string;
+  /** flux_providers id currently in use for chat. */
+  active_provider: string;
+  model: string;
+  favorites: ModelRef[] | null;
+  /** Legacy single-connection fields, migrated into flux_providers on read. */
+  provider: ProviderKind | "";
+  base_url: string;
+  api_key_enc: string;
   /** Separate Gemini key — embeddings never use the chat provider. */
   embed_api_key_enc: string;
   embed_model: string;
@@ -81,18 +111,39 @@ export interface ThoughtVersionRecord extends RecordModel {
   reason: "ai_initial" | "user_edit" | "merge" | "split";
 }
 
-/** What the settings screen is allowed to see. The key itself never leaves
- *  the server. */
-export interface SafeSettings {
-  provider: SettingsRecord["provider"];
+/** A connection as the browser is allowed to see it. The key itself never
+ *  leaves the server. */
+export interface SafeProvider {
+  id: string;
+  provider: ProviderKind;
+  label: string;
   base_url: string;
-  model: string;
-  embed_model: string;
-  auto_reminders: boolean;
   has_key: boolean;
   key_hint: string;
+  /** The models chosen in Settings. Empty means the picker has nothing to
+   *  offer from this connection yet. */
+  models: string[];
+}
+
+/** What the settings screen is allowed to see. */
+export interface SafeSettings {
+  providers: SafeProvider[];
+  /** The connection and model chat is using, if one is chosen. */
+  active: ModelRef | null;
+  favorites: ModelRef[];
+  embed_model: string;
+  auto_reminders: boolean;
   has_embed_key: boolean;
   embed_key_hint: string;
+}
+
+/** One connection with the models it offers — what the picker renders. These
+ *  are the ones picked in Settings, not everything the endpoint has. */
+export interface ProviderCatalog {
+  provider: SafeProvider;
+  models: string[];
+  /** Set when there is nothing to show and the reason is worth saying. */
+  note?: string;
 }
 
 export interface ChatRecord extends RecordModel {

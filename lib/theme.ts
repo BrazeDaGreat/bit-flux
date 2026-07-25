@@ -31,6 +31,10 @@ export interface Palette {
     light: { paper: string; ink: string };
     dark: { paper: string; ink: string };
   };
+  /** The palette's hue at usable saturation. The papers are near-white and
+   *  near-black, so they carry too little chroma to colour an icon with; this
+   *  is the same hue pushed to a mid-tone the picker can tint glyphs with. */
+  tint: string;
 }
 
 export const PALETTES: readonly Palette[] = [
@@ -42,6 +46,7 @@ export const PALETTES: readonly Palette[] = [
       light: { paper: "#ece8f6", ink: "#26232e" },
       dark: { paper: "#14121a", ink: "#eeeaf6" },
     },
+    tint: "#8b6fe0",
   },
   {
     id: "mist",
@@ -51,6 +56,7 @@ export const PALETTES: readonly Palette[] = [
       light: { paper: "#e5ebf7", ink: "#21262f" },
       dark: { paper: "#10131b", ink: "#e9edf6" },
     },
+    tint: "#5b7fc4",
   },
   {
     id: "blossom",
@@ -60,6 +66,7 @@ export const PALETTES: readonly Palette[] = [
       light: { paper: "#f6e8ee", ink: "#2e2127" },
       dark: { paper: "#191115", ink: "#f7e9f0" },
     },
+    tint: "#d16a92",
   },
   {
     id: "meadow",
@@ -69,6 +76,7 @@ export const PALETTES: readonly Palette[] = [
       light: { paper: "#e7f0e6", ink: "#222a22" },
       dark: { paper: "#101410", ink: "#eaf2e9" },
     },
+    tint: "#5c9a5f",
   },
   {
     id: "sand",
@@ -78,6 +86,7 @@ export const PALETTES: readonly Palette[] = [
       light: { paper: "#f7e9dc", ink: "#2e2620" },
       dark: { paper: "#181310", ink: "#f6ece2" },
     },
+    tint: "#c08144",
   },
   {
     id: "frost",
@@ -87,6 +96,7 @@ export const PALETTES: readonly Palette[] = [
       light: { paper: "#e2f0f2", ink: "#1f2b2d" },
       dark: { paper: "#0e1416", ink: "#e6f2f4" },
     },
+    tint: "#3fa3ad",
   },
 ] as const;
 

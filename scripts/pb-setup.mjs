@@ -221,17 +221,49 @@ const definitions = [
     ],
   }),
 
+  // One row per connected account. A person can hold several at once — the
+  // model picker on Capture is what chooses between them.
+  () => ({
+    name: "flux_providers",
+    type: "base",
+    ...OWNER_RULES,
+    fields: [
+      relation("user", ids.users, { required: true, cascadeDelete: true }),
+      select("provider", ["openai", "groq", "gemini", "openrouter", "custom"]),
+      // The user's own name for this connection, so two custom endpoints are
+      // tellable apart.
+      text("label", { max: 80 }),
+      url("base_url", { onlyDomains: null }),
+      // AES-256-GCM ciphertext. Never sent to the browser — server routes strip it.
+      text("api_key_enc", { max: 4000 }),
+      // The models this connection may offer, picked in Settings. Endpoints
+      // list hundreds; the picker shows only what's in here.
+      json("models"),
+      ...timestamps(),
+    ],
+    indexes: [
+      "CREATE INDEX `idx_flux_providers_user` ON `flux_providers` (`user`, `created`)",
+    ],
+  }),
+
   () => ({
     name: "flux_settings",
     type: "base",
     ...OWNER_RULES,
     fields: [
       relation("user", ids.users, { required: true, cascadeDelete: true }),
+      // Which connection and model the chat side is currently using. Chosen on
+      // Capture, reused by Ask.
+      relation("active_provider", ids.flux_providers, { cascadeDelete: false }),
+      text("model", { max: 200 }),
+      // [{ provider: <flux_providers id>, model: "…" }] — the picker's
+      // Favourites list.
+      json("favorites"),
+      // Legacy single-connection fields, kept only so existing rows can be
+      // migrated into flux_providers on first read. See TODO.md.
       select("provider", ["openai", "groq", "gemini", "openrouter", "custom"]),
       url("base_url", { onlyDomains: null }),
-      // AES-256-GCM ciphertext. Never sent to the browser — server routes strip it.
       text("api_key_enc", { max: 4000 }),
-      text("model", { max: 200 }),
       // Embeddings are always Gemini (AI Studio), independent of the chat
       // provider, so they get their own key.
       text("embed_api_key_enc", { max: 4000 }),

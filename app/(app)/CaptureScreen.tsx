@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
+import ModelPicker from "@/components/ModelPicker";
+import { modelStore, type Selection } from "@/lib/model-store";
 import { pb } from "@/lib/pb";
 import { sortingStore } from "@/lib/sorting-store";
 import type { DumpRecord } from "@/lib/types";
@@ -18,11 +26,14 @@ type FailedRequest =
 
 export default function CaptureScreen({
   userId,
-  hasKey,
+  hasProvider,
+  selection,
   weekPanel,
 }: {
   userId: string;
-  hasKey: boolean;
+  hasProvider: boolean;
+  /** What the model picker starts on — the choice made last time. */
+  selection: Selection | null;
   /** Server-rendered — the only other thing on this screen. */
   weekPanel: React.ReactNode;
 }) {
@@ -39,6 +50,17 @@ export default function CaptureScreen({
   const [retrying, setRetrying] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+
+  const models = useSyncExternalStore(
+    modelStore.subscribe,
+    modelStore.getSnapshot,
+    modelStore.getServerSnapshot
+  );
+  const chosen = models.resolved
+    ? models.selection
+    : (models.selection ?? selection);
+  /** Sorting needs both halves of the decision: an account, and a model on it. */
+  const canSort = hasProvider && Boolean(chosen);
 
   useEffect(() => {
     areaRef.current?.focus();
@@ -72,7 +94,18 @@ export default function CaptureScreen({
   ) {
     if (isRetry) setRetrying(true);
     sortingStore.start(dumpId);
-    fetch(`/api/dumps/${dumpId}/process`, { method: "POST" })
+    // Send the model that was on screen when Save was pressed, so a change
+    // made a second ago is the one that runs.
+    const picked = modelStore.effective(selection);
+    fetch(`/api/dumps/${dumpId}/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: picked
+          ? { provider: picked.provider, model: picked.model }
+          : undefined,
+      }),
+    })
       .then(async (res) => {
         const data = (await res.json()) as { error?: string; needs_key?: boolean };
         if (!res.ok) {
@@ -129,9 +162,9 @@ export default function CaptureScreen({
         status: "pending",
       });
 
-      setFlash(hasKey ? "Saved — sorting it now" : "Saved");
+      setFlash(canSort ? "Saved — sorting it now" : "Saved");
       window.setTimeout(() => setFlash(null), 2600);
-      if (hasKey) sortInBackground(saved.id, body);
+      if (canSort) sortInBackground(saved.id, body);
     } catch (err) {
       setText((current) => current || body);
       setFailedRequest({ kind: "save", text: body });
@@ -184,8 +217,13 @@ export default function CaptureScreen({
               className="bare-field flux-scroll block w-full resize-none bg-transparent px-4 py-3.5 font-hand text-[1.05rem] leading-[1.6] text-ink placeholder:text-ink-faint"
               style={{ minHeight: "7rem" }}
             />
-            <div className="flex items-center justify-between gap-3 px-4 pb-2.5 pt-1">
-              <span className="font-data text-[0.68rem] text-ink-faint">
+            {/* Which model sorts this sits with the box it will sort, not on
+                another screen — and it stays put for next time. */}
+            <div className="flex items-center gap-2 px-2.5 pb-2.5 pt-1">
+              {hasProvider && (
+                <ModelPicker initial={selection} align="left" placement="up" />
+              )}
+              <span className="ml-auto shrink-0 font-data text-[0.68rem] text-ink-faint">
                 {text.trim() ? `${text.trim().length} characters` : "⌘↵ to save"}
               </span>
               <button
@@ -209,13 +247,19 @@ export default function CaptureScreen({
               </p>
             )}
 
-            {!hasKey && !flash && (
+            {!canSort && !flash && (
               <p className="rounded-xl bg-amber-soft px-3.5 py-2.5 text-center text-[0.78rem] text-amber">
                 Everything you write is saved.{" "}
-                <Link href="/settings" className="underline underline-offset-2">
-                  Add an API key
-                </Link>{" "}
-                to have it sorted.
+                {hasProvider ? (
+                  "Pick a model below to have it sorted."
+                ) : (
+                  <>
+                    <Link href="/settings" className="underline underline-offset-2">
+                      Add a provider
+                    </Link>{" "}
+                    to have it sorted.
+                  </>
+                )}
               </p>
             )}
 

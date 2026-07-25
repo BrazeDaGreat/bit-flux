@@ -1,10 +1,16 @@
 import type PocketBase from "pocketbase";
 
 import { decryptSecret, maskKey } from "./crypto";
-import type { ProviderConfig } from "./ai/provider";
 import type { EmbedConfig } from "./ai/embeddings";
 import { DEFAULT_EMBED_MODEL } from "./ai/embeddings";
-import type { SafeSettings, SettingsRecord } from "./types";
+import {
+  activeRef,
+  liveFavorites,
+  loadProviders,
+  migrateLegacyProvider,
+  toSafeProvider,
+} from "./providers-server";
+import type { ProviderRecord, SafeSettings, SettingsRecord } from "./types";
 
 /** One settings row per user, or null before they've saved anything. */
 export async function loadSettings(
@@ -30,50 +36,49 @@ function hintFor(ciphertext: string): string {
   }
 }
 
-export function toSafeSettings(record: SettingsRecord | null): SafeSettings {
-  if (!record) {
-    return {
-      provider: "",
-      base_url: "",
-      model: "",
-      embed_model: "",
-      auto_reminders: false,
-      has_key: false,
-      key_hint: "",
-      has_embed_key: false,
-      embed_key_hint: "",
-    };
+/**
+ * Everything the settings screen and the model picker are allowed to know,
+ * with the connections already migrated forward if this account still had the
+ * old single-provider shape.
+ */
+export async function loadSafeSettings(
+  client: PocketBase,
+  userId: string
+): Promise<{ safe: SafeSettings; record: SettingsRecord | null; providers: ProviderRecord[] }> {
+  const record = await loadSettings(client, userId);
+  let providers = await loadProviders(client, userId);
+
+  if (providers.length === 0) {
+    const migrated = await migrateLegacyProvider(client, userId, record);
+    if (migrated) {
+      providers = [migrated];
+      return {
+        safe: toSafeSettings(record, providers, {
+          active: { provider: migrated.id, model: record?.model ?? "" },
+        }),
+        record,
+        providers,
+      };
+    }
   }
 
-  return {
-    provider: record.provider,
-    base_url: record.base_url ?? "",
-    model: record.model ?? "",
-    embed_model: record.embed_model ?? "",
-    auto_reminders: Boolean(record.auto_reminders),
-    has_key: Boolean(record.api_key_enc),
-    key_hint: hintFor(record.api_key_enc),
-    has_embed_key: Boolean(record.embed_api_key_enc),
-    embed_key_hint: hintFor(record.embed_api_key_enc),
-  };
+  return { safe: toSafeSettings(record, providers), record, providers };
 }
 
-export class MissingKeyError extends Error {
-  constructor() {
-    super("Add an API key in Settings before sorting thoughts.");
-  }
-}
-
-/** The decrypted config used to actually call a model. Server-only. */
-export function toProviderConfig(record: SettingsRecord | null): ProviderConfig {
-  if (!record?.api_key_enc || !record.provider || !record.model) {
-    throw new MissingKeyError();
-  }
+export function toSafeSettings(
+  record: SettingsRecord | null,
+  providers: ProviderRecord[] = [],
+  overrides: { active?: SafeSettings["active"] } = {}
+): SafeSettings {
+  const active = overrides.active ?? activeRef(providers, record);
   return {
-    provider: record.provider,
-    apiKey: decryptSecret(record.api_key_enc),
-    baseUrl: record.base_url || undefined,
-    model: record.model,
+    providers: providers.map(toSafeProvider),
+    active: active?.model ? active : null,
+    favorites: liveFavorites(providers, record),
+    embed_model: record?.embed_model ?? "",
+    auto_reminders: Boolean(record?.auto_reminders),
+    has_embed_key: Boolean(record?.embed_api_key_enc),
+    embed_key_hint: hintFor(record?.embed_api_key_enc ?? ""),
   };
 }
 
@@ -89,4 +94,21 @@ export function toEmbedConfig(record: SettingsRecord | null): EmbedConfig | null
   } catch {
     return null;
   }
+}
+
+/** Creates the row on first write — a user has no settings until they set
+ *  something. */
+export async function saveSettings(
+  client: PocketBase,
+  userId: string,
+  existing: SettingsRecord | null,
+  data: Record<string, unknown>
+): Promise<SettingsRecord> {
+  return existing
+    ? await client
+        .collection("flux_settings")
+        .update<SettingsRecord>(existing.id, data)
+    : await client
+        .collection("flux_settings")
+        .create<SettingsRecord>({ user: userId, ...data });
 }

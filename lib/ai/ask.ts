@@ -16,14 +16,18 @@ Rules:
 - Cite every claim with the thought's number in square brackets, like [2]. Cite as you go, not in a list at the end.
 - Be direct and specific. Quote the person's own wording when it's the clearest answer.
 - Dates: today's date is given below. "Overdue" means before today.
+- Every thought is marked DONE or OPEN. A DONE thought is finished: never list it as outstanding, never suggest doing it, and never call it overdue — say it is already done. Only OPEN thoughts count as things still to do.
 - No preamble, no "based on your thoughts". Just answer.`;
 
+/** Completion is the fact most often got wrong, so it is stated first, in one
+ *  unmissable word, rather than left for the model to infer from a field. */
 function label(thought: ThoughtRecord): string {
-  const bits: string[] = [];
-  if (thought.status !== "open") bits.push(thought.status);
+  const bits: string[] = [
+    thought.status === "done" ? "DONE — already finished" : "OPEN — not done yet",
+  ];
   if (thought.action_date) bits.push(`do ${thought.action_date.slice(0, 10)}`);
   if (thought.deadline) bits.push(`due ${thought.deadline.slice(0, 10)}`);
-  return bits.length ? bits.join(", ") : "open";
+  return bits.join(", ");
 }
 
 export function buildContext(context: AskContext): string {
@@ -31,8 +35,9 @@ export function buildContext(context: AskContext): string {
     .map((hit, index) => {
       const thought = hit.thought;
       const dump = context.dumps.get(thought.dump);
+      const done = thought.status === "done";
       return [
-        `[${index + 1}] ${thought.title}`,
+        `[${index + 1}] ${done ? "[DONE] " : ""}${thought.title}`,
         `    status: ${label(thought)}`,
         `    captured: ${(thought.created ?? "").slice(0, 10)}`,
         `    ${thought.body.replace(/\n/g, "\n    ")}`,

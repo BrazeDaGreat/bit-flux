@@ -13,6 +13,8 @@ import FilterMenu, {
   FilterChips,
   type FilterGroup,
 } from "@/components/FilterMenu";
+import ModelPicker from "@/components/ModelPicker";
+import { modelStore, type Selection } from "@/lib/model-store";
 import { pb } from "@/lib/pb";
 import { stripReasoning } from "@/lib/text";
 import type {
@@ -104,6 +106,7 @@ function subscribeSidebar(notify: () => void) {
 export default function AskRoom({
   tags,
   people,
+  selection,
   initialScope,
   initialQuestion = "",
   chats: initialChats,
@@ -112,6 +115,8 @@ export default function AskRoom({
 }: {
   tags: TagRecord[];
   people: string[];
+  /** The same choice Capture made — Ask doesn't have its own. */
+  selection: Selection | null;
   initialScope?: AskScope;
   initialQuestion?: string;
   chats: ChatSummary[];
@@ -223,6 +228,8 @@ export default function AskRoom({
     setBusy(true);
     setTurns((prev) => [...prev, { role: "user", content: q }]);
 
+    const picked = modelStore.effective(selection);
+
     try {
       const res = await fetch("/api/ask", {
         method: "POST",
@@ -231,6 +238,9 @@ export default function AskRoom({
           question: q,
           chat_id: chatId,
           scope: scopeCount ? scope : undefined,
+          model: picked
+            ? { provider: picked.provider, model: picked.model }
+            : undefined,
         }),
       });
       const data = (await res.json()) as {
@@ -241,6 +251,7 @@ export default function AskRoom({
         note?: string;
         error?: string;
         needs_key?: boolean;
+        needs_model?: boolean;
       };
 
       if (!res.ok || !data.answer) {
@@ -450,6 +461,14 @@ export default function AskRoom({
                 label="Narrow what gets searched"
                 align="left"
               />
+              <div className="self-center">
+                <ModelPicker
+                  initial={selection}
+                  align="left"
+                  placement="up"
+                  label="Model answering"
+                />
+              </div>
               <textarea
                 ref={areaRef}
                 value={question}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { currentUser, pbServer } from "@/lib/pb-server";
+import { NOT_ARCHIVED } from "@/lib/search";
 import { loadSettings } from "@/lib/settings-server";
 import type { ThoughtRecord } from "@/lib/types";
 import ReviewQueue from "./ReviewQueue";
@@ -13,7 +14,9 @@ export default async function ReviewPage() {
   let items: ThoughtRecord[] = [];
   try {
     items = await client.collection("flux_thoughts").getFullList<ThoughtRecord>({
-      filter: "needs_review = true",
+      // Something you archived is something you stopped caring about — it
+      // doesn't get to ask for attention here.
+      filter: `needs_review = true && ${NOT_ARCHIVED}`,
       sort: "confidence,-created",
     });
   } catch {

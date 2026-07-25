@@ -23,6 +23,13 @@ function esc(value: string): string {
   return value.replace(/"/g, '\\"');
 }
 
+/**
+ * Archiving is how a person takes something out of circulation, so it comes
+ * out of retrieval too: nothing archived is ever a candidate, on either pass.
+ * Every query built here starts from this clause.
+ */
+export const NOT_ARCHIVED = 'status != "archived"';
+
 export function scopeFilter(scope: AskScope | undefined): string[] {
   if (!scope) return [];
   const parts: string[] = [];
@@ -62,7 +69,7 @@ export async function searchThoughts(
     .map((word) => `(title ~ "${esc(word)}" || body ~ "${esc(word)}")`)
     .join(" || ");
 
-  const keywordFilter = [scopeClause, `(${wordClause})`]
+  const keywordFilter = [NOT_ARCHIVED, scopeClause, `(${wordClause})`]
     .filter(Boolean)
     .join(" && ");
 
@@ -99,7 +106,7 @@ export async function searchThoughts(
     };
   }
 
-  const embeddedFilter = [scopeClause, 'embedding_model != ""']
+  const embeddedFilter = [NOT_ARCHIVED, scopeClause, 'embedding_model != ""']
     .filter(Boolean)
     .join(" && ");
 

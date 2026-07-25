@@ -7,8 +7,10 @@
  */
 
 import { stripReasoning } from "../text";
+import type { ProviderKind } from "../types";
 
-export type ProviderId = "openai" | "groq" | "gemini" | "openrouter" | "custom";
+/** Same union as ProviderKind — this is the name the AI layer uses for it. */
+export type ProviderId = ProviderKind;
 
 export const PROVIDERS: Record<
   ProviderId,

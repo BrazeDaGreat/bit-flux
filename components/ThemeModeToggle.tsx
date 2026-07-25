@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { Moon, Sun } from "lucide-react";
 
 import { applyTheme, DEFAULT_MODE, DEFAULT_PALETTE, isMode, isPalette } from "@/lib/theme";
 
@@ -64,21 +65,11 @@ export default function ThemeModeToggle() {
         className="absolute top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-surface shadow-sm transition-[left] duration-300 ease-out"
         style={{ left: dark ? "calc(100% - 1.375rem)" : "0.125rem" }}
       >
-        <svg viewBox="0 0 16 16" className="h-3 w-3" aria-hidden="true">
-          {dark ? (
-            <path
-              d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5Z"
-              fill="var(--iris)"
-            />
-          ) : (
-            <>
-              <circle cx="8" cy="8" r="3" fill="var(--amber)" />
-              <g stroke="var(--amber)" strokeWidth="1.4" strokeLinecap="round">
-                <path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2" />
-              </g>
-            </>
-          )}
-        </svg>
+        {dark ? (
+          <Moon className="h-3 w-3 text-iris" aria-hidden="true" />
+        ) : (
+          <Sun className="h-3 w-3 text-amber" aria-hidden="true" />
+        )}
       </span>
     </button>
   );

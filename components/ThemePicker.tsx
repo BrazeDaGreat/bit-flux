@@ -1,6 +1,18 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import {
+  Check,
+  ChevronDown,
+  Cloud,
+  Flower2,
+  Heart,
+  Leaf,
+  Monitor,
+  Snowflake,
+  Sun,
+  type LucideIcon,
+} from "lucide-react";
 
 import {
   applyTheme,
@@ -39,32 +51,40 @@ function getSnapshot(): string {
 
 const SERVER_SNAPSHOT = `${DEFAULT_MODE}|${DEFAULT_PALETTE}|light`;
 
-/**
- * A stock swatch rather than a switch. The palette only changes the paper — the
- * seven accent inks are fixed, so each chip shows exactly what varies: the
- * sheet and the ink laid on it, in the mode you'd actually see it in.
- */
-function StockChip({
+const PALETTE_ICONS: Record<PaletteId, LucideIcon> = {
+  lilac: Flower2,
+  mist: Cloud,
+  blossom: Heart,
+  meadow: Leaf,
+  sand: Sun,
+  frost: Snowflake,
+};
+
+function PaletteIcon({
   palette,
   dark,
-  className = "",
+  className,
 }: {
   palette: (typeof PALETTES)[number];
   dark: boolean;
-  className?: string;
+  className: string;
 }) {
-  const { paper, ink } = dark ? palette.swatch.dark : palette.swatch.light;
+  const Icon = PALETTE_ICONS[palette.id];
+  // The palette's own hue, nudged toward the far end of the surface so it stays
+  // legible: lifted on dark paper, deepened on light.
+  const color = dark
+    ? `color-mix(in srgb, ${palette.tint} 78%, white)`
+    : `color-mix(in srgb, ${palette.tint} 82%, black)`;
+  // Snowflake is all strokes with no interior, so filling it does nothing —
+  // it needs the weight in the line instead.
+  const hollow = Icon === Snowflake;
   return (
-    <span
+    <Icon
+      className={className}
+      style={{ color, fill: hollow ? "none" : color }}
+      strokeWidth={hollow ? 2.25 : 1.5}
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-[5px] ${className}`}
-      style={{ background: paper, boxShadow: `inset 0 0 0 1px ${ink}22` }}
-    >
-      <span
-        className="h-[3px] w-[3px] rounded-full"
-        style={{ background: ink }}
-      />
-    </span>
+    />
   );
 }
 
@@ -85,7 +105,6 @@ export default function ThemePicker({
     "light" | "dark",
   ];
   const dark = resolved === "dark";
-
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -127,16 +146,8 @@ export default function ThemePicker({
             : "border-line-strong bg-surface-3 text-ink-faint hover:border-iris hover:text-ink"
         }`}
       >
-        <StockChip palette={current} dark={dark} className="h-5 w-5" />
-        <svg viewBox="0 0 10 10" className="h-2 w-2" aria-hidden="true">
-          <path
-            d="M2 4l3 3 3-3"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
+        <PaletteIcon palette={current} dark={dark} className="h-4 w-4" />
+        <ChevronDown className="h-3 w-3" aria-hidden="true" />
       </button>
 
       {open && (
@@ -165,10 +176,10 @@ export default function ThemePicker({
                   active ? "bg-surface-2" : ""
                 }`}
               >
-                <StockChip
+                <PaletteIcon
                   palette={entry}
                   dark={dark}
-                  className="h-6 w-6 self-start"
+                  className="mt-0.5 h-5 w-5 shrink-0"
                 />
                 <span className="min-w-0 flex-1">
                   <span
@@ -182,9 +193,7 @@ export default function ThemePicker({
                     {entry.note}
                   </span>
                 </span>
-                {active && (
-                  <span className="font-data text-[0.66rem] text-iris">✓</span>
-                )}
+                {active && <Check className="h-3.5 w-3.5 shrink-0 text-iris" aria-hidden="true" />}
               </button>
             );
           })}
@@ -201,6 +210,7 @@ export default function ThemePicker({
               }}
               className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-line px-2 pb-1 pt-2 text-left text-[0.74rem] text-ink-faint transition-colors hover:text-ink"
             >
+              <Monitor className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               Match system light or dark
             </button>
           )}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { currentUser, pbServer } from "@/lib/pb-server";
+import { currentSelection, loadProviders } from "@/lib/providers-server";
 import { loadSettings } from "@/lib/settings-server";
 import type {
   AskScope,
@@ -27,7 +28,7 @@ export default async function AskPage({
   const params = await searchParams;
   const client = await pbServer();
 
-  const [tags, thoughts, settings, chats, history] = await Promise.all([
+  const [tags, thoughts, settings, providers, chats, history] = await Promise.all([
     client
       .collection("flux_tags")
       .getFullList<TagRecord>({ filter: "approved = true", sort: "name" })
@@ -37,6 +38,7 @@ export default async function AskPage({
       .getFullList<ThoughtRecord>({ fields: "people" })
       .catch(() => []),
     loadSettings(client, user.id),
+    loadProviders(client, user.id),
     client
       .collection("flux_chats")
       .getFullList<ChatRecord>({ sort: "-created" })
@@ -61,7 +63,9 @@ export default async function AskPage({
   const scope: AskScope = {};
   if (params.tag) scope.tag = params.tag;
 
-  if (!settings?.api_key_enc || !settings.model) {
+  // Without a connection there is nothing to ask with. Without a model there
+  // is — the picker in the composer is where that gets chosen.
+  if (providers.length === 0) {
     return (
       <div className="mx-auto w-full max-w-xl px-5 py-10 sm:px-8">
         <h1 className="font-hand text-[1.6rem] leading-tight tracking-[-0.01em] text-ink">
@@ -70,7 +74,7 @@ export default async function AskPage({
         <p className="mt-4 rounded-xl bg-amber-soft px-3.5 py-2.5 text-[0.82rem] text-amber">
           Ask needs a model.{" "}
           <Link href="/settings" className="underline underline-offset-2">
-            Add an API key
+            Add a provider
           </Link>{" "}
           to turn it on.
         </p>
@@ -82,6 +86,7 @@ export default async function AskPage({
     <AskRoom
       tags={tags}
       people={people}
+      selection={currentSelection(providers, settings)}
       initialScope={Object.keys(scope).length ? scope : undefined}
       initialQuestion={params.q ?? ""}
       chats={chats.map((chat) => ({
