@@ -16,7 +16,7 @@ export default async function SettingsPage() {
       <h1 className="font-hand text-[1.7rem] leading-tight tracking-[-0.01em] text-ink">
         Settings
       </h1>
-      <p className="mt-1 max-w-[48ch] text-[0.82rem] leading-relaxed text-ink-soft">
+      <p className="mt-1 max-w-[48ch] text-[0.82rem] leading-relaxed text-ink-soft max-lg:text-[0.95rem]">
         Your keys, your bill. Keys are encrypted on the server and never sent
         back to the browser.
       </p>

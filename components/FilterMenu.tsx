@@ -2,6 +2,9 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 
+import { useIsCompact } from "@/lib/breakpoint";
+import Sheet, { SheetRow } from "./Sheet";
+
 export interface FilterOption {
   value: string;
   label: string;
@@ -56,9 +59,11 @@ export default function FilterMenu({
   const [section, setSection] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const compact = useIsCompact();
 
+  // The sheet dismisses itself — pointer-outside belongs to the popover only.
   useEffect(() => {
-    if (!open) return;
+    if (!open || compact) return;
 
     function onPointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
@@ -76,10 +81,15 @@ export default function FilterMenu({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, compact]);
 
   const applied = groups.filter((g) => g.value).length;
   const current = groups.find((g) => g.key === section);
+
+  function close() {
+    setOpen(false);
+    setSection(null);
+  }
 
   return (
     <div ref={rootRef} className="relative">
@@ -90,11 +100,11 @@ export default function FilterMenu({
           setSection(null);
         }}
         aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls={open ? menuId : undefined}
+        aria-haspopup={compact ? "dialog" : "menu"}
+        aria-controls={open && !compact ? menuId : undefined}
         aria-label={label}
         title={label}
-        className={`flex h-9 items-center gap-1.5 rounded-full border px-3 transition-colors ${
+        className={`flex h-9 items-center gap-1.5 rounded-full border px-3 transition-colors max-lg:h-11 max-lg:px-4 ${
           applied > 0 || open
             ? "border-iris bg-iris-soft text-iris"
             : "border-line-strong text-ink-soft hover:border-iris hover:text-ink"
@@ -106,7 +116,7 @@ export default function FilterMenu({
         )}
       </button>
 
-      {open && (
+      {open && !compact && (
         <div
           id={menuId}
           role="menu"
@@ -175,6 +185,61 @@ export default function FilterMenu({
           )}
         </div>
       )}
+
+      {/* Same two steps as the popover — the groups, then one group's options —
+          with the sheet's own back affordance carrying the return trip. */}
+      <Sheet
+        open={open && compact}
+        onClose={close}
+        title={current ? current.label : label}
+        onBack={current ? () => setSection(null) : undefined}
+      >
+        {current
+          ? current.options.map((option) => {
+              const active = current.value === option.value;
+              return (
+                <SheetRow
+                  key={option.value}
+                  selected={active}
+                  onClick={() => {
+                    onPick(current.key, active ? null : option.value);
+                    close();
+                  }}
+                  leading={
+                    option.tone ? (
+                      <span
+                        aria-hidden="true"
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: `var(--${option.tone})` }}
+                      />
+                    ) : undefined
+                  }
+                  trailing={
+                    active ? <span className="font-data text-[0.8rem]">✓</span> : undefined
+                  }
+                >
+                  {option.label}
+                </SheetRow>
+              );
+            })
+          : groups.map((group) => (
+              <SheetRow
+                key={group.key}
+                onClick={
+                  group.options.length === 0 ? undefined : () => setSection(group.key)
+                }
+                trailing={
+                  <span className="font-data text-[0.78rem] text-ink-faint">
+                    {group.value
+                      ? (group.options.find((o) => o.value === group.value)?.label ?? "1")
+                      : "›"}
+                  </span>
+                }
+              >
+                {group.label}
+              </SheetRow>
+            ))}
+      </Sheet>
     </div>
   );
 }
@@ -201,7 +266,7 @@ export function FilterChips({
             key={group.key}
             type="button"
             onClick={() => onRemove(group.key)}
-            className="group flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 py-1 pl-2.5 pr-2 text-[0.74rem] text-ink-soft transition-colors hover:border-blush hover:text-ink"
+            className="group flex items-center gap-1.5 rounded-full border border-line-strong bg-surface-2 py-1 pl-2.5 pr-2 text-[0.74rem] text-ink-soft transition-colors hover:border-blush hover:text-ink max-lg:h-11 max-lg:pl-3.5 max-lg:pr-3 max-lg:text-[0.85rem]"
           >
             {option?.tone && (
               <span
@@ -228,7 +293,7 @@ export function FilterChips({
         <button
           type="button"
           onClick={onClear}
-          className="px-1 text-[0.74rem] text-ink-faint hover:text-ink"
+          className="px-1 text-[0.74rem] text-ink-faint hover:text-ink max-lg:h-11 max-lg:px-2.5 max-lg:text-[0.85rem]"
         >
           Clear all
         </button>

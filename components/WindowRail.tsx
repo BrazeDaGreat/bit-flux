@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import { Wind } from "lucide-react";
 
 import { clearAuth } from "@/lib/pb";
 import type { UserRecord } from "@/lib/types";
+import AccountSheet from "./AccountSheet";
 import ThemeModeToggle from "./ThemeModeToggle";
 import ThemePicker from "./ThemePicker";
 
@@ -18,9 +20,16 @@ const NAV = [
   { href: "/ask", label: "Ask" },
 ];
 
+/**
+ * The rail belongs to screens with a pointer and room to spare. A phone gets
+ * the bar and the sill instead, so this hides below 768px; a tablet keeps it,
+ * with thumb-sized pills and the five controls on its right collapsed into the
+ * one door they all lead to.
+ */
 export default function WindowRail({ user }: { user: UserRecord }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [accountOpen, setAccountOpen] = useState(false);
 
   function signOut() {
     clearAuth();
@@ -30,7 +39,7 @@ export default function WindowRail({ user }: { user: UserRecord }) {
 
   return (
     <header
-      className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface-2 px-3 sm:px-5"
+      className="hidden h-14 shrink-0 items-center gap-3 border-b border-line bg-surface-2 px-3 md:flex sm:px-5"
       style={{ boxShadow: "inset 0 1px 0 var(--rail-highlight)" }}
     >
       <Link
@@ -54,7 +63,7 @@ export default function WindowRail({ user }: { user: UserRecord }) {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`shrink-0 rounded-full px-2.5 py-1.5 text-[0.8rem] font-medium transition-colors ${
+              className={`shrink-0 rounded-full px-2.5 py-1.5 text-[0.8rem] font-medium transition-colors max-lg:flex max-lg:h-11 max-lg:items-center max-lg:px-3.5 ${
                 active
                   ? "bg-iris-soft text-iris"
                   : "text-ink-soft hover:bg-surface-3 hover:text-ink"
@@ -66,7 +75,37 @@ export default function WindowRail({ user }: { user: UserRecord }) {
         })}
       </nav>
 
-      <div className="ml-auto flex items-center gap-2 sm:gap-3">
+      {/* A tablet has room for the navigation but not for five more controls
+          beside it, so they collapse into the account button — the same door
+          the phone uses. */}
+      <button
+        type="button"
+        onClick={() => setAccountOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={accountOpen}
+        aria-label="Account, theme and settings"
+        className="tap ml-auto grid shrink-0 place-items-center rounded-full lg:hidden"
+      >
+        {user.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.avatarUrl}
+            alt=""
+            className="h-7 w-7 rounded-full border border-line object-cover"
+          />
+        ) : (
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-iris-soft text-[0.78rem] font-semibold text-iris">
+            {(user.name || user.email || "?").charAt(0).toUpperCase()}
+          </span>
+        )}
+      </button>
+      <AccountSheet
+        user={user}
+        open={accountOpen}
+        onClose={() => setAccountOpen(false)}
+      />
+
+      <div className="ml-auto flex items-center gap-2 max-lg:hidden sm:gap-3">
         <ThemeModeToggle />
         <ThemePicker />
         <Link

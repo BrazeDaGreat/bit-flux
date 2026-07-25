@@ -60,7 +60,7 @@ const PALETTE_ICONS: Record<PaletteId, LucideIcon> = {
   frost: Snowflake,
 };
 
-function PaletteIcon({
+export function PaletteIcon({
   palette,
   dark,
   className,

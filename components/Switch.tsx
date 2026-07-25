@@ -22,7 +22,7 @@ export default function Switch({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="group flex w-full items-start gap-3 rounded-xl px-1 py-1 text-left transition-colors"
+      className="group tap flex w-full items-start gap-3 rounded-xl px-1 py-1 text-left transition-colors max-lg:py-2.5"
     >
       <span
         aria-hidden="true"
@@ -41,9 +41,11 @@ export default function Switch({
         />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.85rem] text-ink">{label}</span>
+        <span className="block text-[0.85rem] text-ink max-lg:text-[0.95rem]">
+          {label}
+        </span>
         {hint && (
-          <span className="mt-0.5 block text-[0.74rem] leading-relaxed text-ink-faint">
+          <span className="mt-0.5 block text-[0.74rem] leading-relaxed text-ink-faint max-lg:text-[0.875rem]">
             {hint}
           </span>
         )}

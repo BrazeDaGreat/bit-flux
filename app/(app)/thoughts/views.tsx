@@ -40,13 +40,13 @@ export function GroupHeader({
         />
       )}
       <h2
-        className="font-data text-[0.64rem] uppercase tracking-[0.14em] text-ink-faint"
+        className="font-data text-[0.64rem] uppercase tracking-[0.14em] text-ink-faint max-lg:text-[0.75rem]"
         suppressHydrationWarning
       >
         {label}
       </h2>
       {note && (
-        <span className="font-data text-[0.62rem] text-ink-faint opacity-70">
+        <span className="font-data text-[0.62rem] text-ink-faint opacity-70 max-lg:text-[0.75rem]">
           {note}
         </span>
       )}
@@ -54,7 +54,7 @@ export function GroupHeader({
   );
 }
 
-export function ListView({ thoughts, tags, onStatus }: ViewProps) {
+export function ListView({ thoughts, tags, ...actions }: ViewProps) {
   const [open, setOpen] = useState<string | null>(null);
 
   const groups = useMemo(() => {
@@ -81,7 +81,7 @@ export function ListView({ thoughts, tags, onStatus }: ViewProps) {
                 tags={tags}
                 expanded={open === thought.id}
                 onToggle={() => setOpen(open === thought.id ? null : thought.id)}
-                onStatus={onStatus}
+                {...actions}
               />
             ))}
           </ul>
@@ -124,7 +124,7 @@ function distance(target: Date, now = new Date()): string {
  * distance is written next to it. Late things sit above today's line, which is
  * marked, so the amount of overdue is a length rather than a number.
  */
-export function TimelineView({ thoughts, tags, onStatus }: ViewProps) {
+export function TimelineView({ thoughts, tags, ...actions }: ViewProps) {
   const { nodes, undated } = useMemo(() => {
     const byDay = new Map<string, { date: Date; items: ThoughtRecord[] }>();
     const undated: ThoughtRecord[] = [];
@@ -209,19 +209,19 @@ export function TimelineView({ thoughts, tags, onStatus }: ViewProps) {
 
                 <div className="flex items-baseline gap-2">
                   <h2
-                    className="font-data text-[0.66rem] uppercase tracking-[0.12em] text-ink"
+                    className="font-data text-[0.66rem] uppercase tracking-[0.12em] text-ink max-lg:text-[0.75rem]"
                     suppressHydrationWarning
                   >
                     {dayLabel(node.date.toISOString())}
                   </h2>
                   <span
-                    className="font-data text-[0.62rem]"
+                    className="font-data text-[0.62rem] max-lg:text-[0.75rem]"
                     style={{ color: `var(--${tone})` }}
                     suppressHydrationWarning
                   >
                     {distance(node.date, now)}
                   </span>
-                  <span className="font-data text-[0.62rem] text-ink-faint opacity-70">
+                  <span className="font-data text-[0.62rem] text-ink-faint opacity-70 max-lg:text-[0.75rem]">
                     {node.items.length}
                   </span>
                 </div>
@@ -232,7 +232,7 @@ export function TimelineView({ thoughts, tags, onStatus }: ViewProps) {
                       key={thought.id}
                       thought={thought}
                       tags={tags}
-                      onStatus={onStatus}
+                      {...actions}
                     />
                   ))}
                 </ul>
@@ -272,7 +272,7 @@ export function TimelineView({ thoughts, tags, onStatus }: ViewProps) {
                   key={thought.id}
                   thought={thought}
                   tags={tags}
-                  onStatus={onStatus}
+                  {...actions}
                 />
               ))}
             </ul>
@@ -311,9 +311,22 @@ function TodayMark() {
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+/** A dot in the month strip carries the one thing a dot can: whether that day
+ *  is behind you, on you, or ahead. Same three inks the timeline uses. */
+function dotTone(thought: ThoughtRecord, date: Date): string {
+  if (thought.status === "done") return "ink-faint";
+  const startOf = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const day = startOf(date);
+  const today = startOf(new Date());
+  if (day < today) return "blush";
+  if (day === today) return "iris";
+  return "sky";
+}
+
 /** A month at a time, because dated thoughts are the ones with a shape in
  *  time. Anything without a date is counted, not scattered. */
-export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
+export function CalendarView({ thoughts, tags, ...actions }: ViewProps) {
   const [offset, setOffset] = useState(0);
   const [picked, setPicked] = useState<{ key: string; date: Date } | null>(null);
 
@@ -353,11 +366,32 @@ export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
   const todayKey = dayKey(new Date().toISOString());
   const pickedItems = picked ? (byDay.get(picked.key) ?? []) : [];
 
+  /** The month as a list rather than a grid: every day that has something,
+   *  in order. This is the readable half of the compact calendar. */
+  const agenda = useMemo(() => {
+    const out: { key: string; date: Date; items: ThoughtRecord[] }[] = [];
+    for (const date of cells) {
+      if (!date) continue;
+      const key = dayKey(date.toISOString());
+      const items = byDay.get(key);
+      if (items && items.length > 0) out.push({ key, date, items });
+    }
+    return out;
+  }, [cells, byDay]);
+
+  /** Tapping a day moves the agenda to it. The month strip is a map, not a
+   *  container — nothing opens inside it. */
+  function jumpTo(key: string) {
+    document
+      .getElementById(`agenda-${key}`)
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2 px-1.5">
         <h2
-          className="font-data text-[0.68rem] uppercase tracking-[0.14em] text-ink"
+          className="font-data text-[0.68rem] uppercase tracking-[0.14em] text-ink max-lg:text-[0.8rem]"
           suppressHydrationWarning
         >
           {month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
@@ -370,7 +404,7 @@ export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
             <button
               type="button"
               onClick={() => setOffset(0)}
-              className="rounded-full px-2 py-1 font-data text-[0.66rem] text-ink-soft hover:text-ink"
+              className="rounded-full px-2 py-1 font-data text-[0.66rem] text-ink-soft hover:text-ink max-lg:h-11 max-lg:px-3 max-lg:text-[0.8rem]"
             >
               today
             </button>
@@ -381,7 +415,17 @@ export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line">
+      {/*
+        Two calendars, one month.
+
+        A seven-column grid of cells that can hold a title needs about 90px a
+        column. A phone has 51. So below the desktop breakpoint the grid keeps
+        only the thing a calendar is uniquely for — the shape of the month, how
+        the busy days cluster — as a strip of days marked with dots, and the
+        titles move into an agenda underneath where there is a full line for
+        each of them.
+      */}
+      <div className="hidden grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid">
         {WEEKDAYS.map((day) => (
           <div
             key={day}
@@ -442,8 +486,99 @@ export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
         })}
       </div>
 
+      {/* The strip: the month's shape, and nothing it cannot hold. */}
+      <div className="overflow-hidden rounded-xl border border-line lg:hidden">
+        <div className="grid grid-cols-7 border-b border-line bg-surface-2">
+          {WEEKDAYS.map((day) => (
+            <span
+              key={day}
+              className="py-1 text-center font-data text-[0.7rem] uppercase tracking-[0.1em] text-ink-faint"
+            >
+              {day.slice(0, 1)}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7">
+          {cells.map((date, index) => {
+            if (!date) return <span key={`strip-pad-${index}`} className="h-11" />;
+            const key = dayKey(date.toISOString());
+            const items = byDay.get(key) ?? [];
+            const isToday = key === todayKey;
+            const isPicked = key === picked?.key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={items.length === 0}
+                onClick={() => {
+                  setPicked({ key, date });
+                  jumpTo(key);
+                }}
+                aria-pressed={isPicked}
+                aria-label={`${date.getDate()} — ${items.length} thought${
+                  items.length === 1 ? "" : "s"
+                }`}
+                className={`flex h-11 flex-col items-center justify-center gap-1 transition-colors ${
+                  isPicked ? "bg-iris-soft" : ""
+                }`}
+              >
+                <span
+                  className={`font-data text-[0.8rem] leading-none ${
+                    isToday
+                      ? "text-iris"
+                      : items.length > 0
+                        ? "text-ink"
+                        : "text-ink-faint"
+                  }`}
+                >
+                  {date.getDate()}
+                </span>
+                <span aria-hidden="true" className="flex h-1 items-center gap-0.5">
+                  {items.slice(0, 3).map((thought) => (
+                    <span
+                      key={thought.id}
+                      className="h-1 w-1 rounded-full"
+                      style={{ background: `var(--${dotTone(thought, date)})` }}
+                    />
+                  ))}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* The agenda: the same month, readable. */}
+      <div className="flex flex-col gap-4 lg:hidden">
+        {agenda.length === 0 ? (
+          <p className="px-1.5 py-4 text-center text-[0.95rem] text-ink-soft">
+            Nothing dated this month.
+          </p>
+        ) : (
+          agenda.map((group) => (
+            <section key={group.key} id={`agenda-${group.key}`}>
+              <GroupHeader
+                label={dayLabel(group.date.toISOString())}
+                note={String(group.items.length)}
+              />
+              <ul className="flex flex-col gap-1.5">
+                {group.items.map((thought) => (
+                  <ThoughtCard
+                    key={thought.id}
+                    thought={thought}
+                    tags={tags}
+                    {...actions}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
+      </div>
+
       {picked && (
-        <section className="motion-safe:animate-[flux-unfold_180ms_ease-out]">
+        <section className="motion-safe:animate-[flux-unfold_180ms_ease-out] max-lg:hidden">
           <GroupHeader
             label={dayLabel(picked.date.toISOString())}
             note={String(pickedItems.length)}
@@ -454,7 +589,7 @@ export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
                 key={thought.id}
                 thought={thought}
                 tags={tags}
-                onStatus={onStatus}
+                {...actions}
               />
             ))}
           </ul>
@@ -462,7 +597,7 @@ export function CalendarView({ thoughts, tags, onStatus }: ViewProps) {
       )}
 
       {undated > 0 && (
-        <p className="px-1.5 font-data text-[0.66rem] text-ink-faint">
+        <p className="px-1.5 font-data text-[0.66rem] text-ink-faint max-lg:text-[0.75rem]">
           {undated} without a date — find them in List, or at the end of
           Timeline.
         </p>
@@ -486,14 +621,14 @@ function StepButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="rounded-full border border-line-strong px-2 py-0.5 font-data text-[0.7rem] text-ink-soft transition-colors hover:border-iris hover:text-ink"
+      className="rounded-full border border-line-strong px-2 py-0.5 font-data text-[0.7rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:w-11 max-lg:px-0 max-lg:text-[0.9rem]"
     >
       {children}
     </button>
   );
 }
 
-export function TagsView({ thoughts, tags, onStatus }: ViewProps) {
+export function TagsView({ thoughts, tags, ...actions }: ViewProps) {
   const groups = useMemo(() => {
     const out = tags
       .map((tag) => ({
@@ -525,18 +660,18 @@ export function TagsView({ thoughts, tags, onStatus }: ViewProps) {
             </span>
             <Link
               href={`/ask?tag=${tag.id}`}
-              className="ml-auto font-data text-[0.64rem] text-ink-faint transition-colors hover:text-iris"
+              className="ml-auto font-data text-[0.64rem] text-ink-faint transition-colors hover:text-iris max-lg:inline-flex max-lg:h-11 max-lg:items-center max-lg:px-2 max-lg:text-[0.75rem]"
             >
               ask about this →
             </Link>
           </div>
-          <ul className="grid gap-1.5 sm:grid-cols-2">
+          <ul className="grid gap-1.5 md:grid-cols-2">
             {items.map((thought) => (
               <ThoughtCard
                 key={thought.id}
                 thought={thought}
                 tags={tags}
-                onStatus={onStatus}
+                {...actions}
               />
             ))}
           </ul>
@@ -546,13 +681,13 @@ export function TagsView({ thoughts, tags, onStatus }: ViewProps) {
       {groups.untagged.length > 0 && (
         <section>
           <GroupHeader label="No tag" note={String(groups.untagged.length)} />
-          <ul className="grid gap-1.5 sm:grid-cols-2">
+          <ul className="grid gap-1.5 md:grid-cols-2">
             {groups.untagged.map((thought) => (
               <ThoughtCard
                 key={thought.id}
                 thought={thought}
                 tags={tags}
-                onStatus={onStatus}
+                {...actions}
               />
             ))}
           </ul>

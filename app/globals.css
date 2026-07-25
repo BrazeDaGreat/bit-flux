@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* The plan documents are prose *about* classes — Tailwind scanning them mints
+   utilities nothing renders. */
+@source not "../PLAN_RESPONSIVENESS";
+
 /* Dark mode is class-driven (set on <html> before paint), not media-driven,
    because the user can override it in-app. */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -49,6 +53,24 @@
     0 12px 28px -12px rgb(var(--shadow-rgb) / 0.16),
     0 42px 70px -40px rgb(var(--shadow-rgb) / 0.28);
   --rail-highlight: rgb(255 255 255 / 0.85);
+
+  /*
+    Touch. None of these are read above 1024px, where the app is a pointer-first
+    window and every size below was already chosen by hand.
+
+    --sill-h is the window's bottom edge on a phone: the same object as the rail
+    at the top, mirrored, which is why it is stated beside it rather than
+    invented per component.
+  */
+  --tap: 44px;
+  --tap-gap: 8px;
+  --rail-h: 3.25rem;
+  --sill-h: 3.5rem;
+  --sheet-radius: 22px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 .dark {
@@ -338,6 +360,29 @@
   }
 }
 
+/* A sheet arrives from the edge it lives on too — the bottom one. Same
+   distance and the same 160ms as the side panel, so the two read as one
+   gesture family rather than two. */
+@keyframes flux-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes flux-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes flux-rotate {
   to {
     transform: rotate(360deg);
@@ -408,5 +453,36 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/*
+  ─────────────────────────────────────────────────────────────────────────────
+  Below the desktop breakpoint.
+
+  Everything under here is additive and gated at 64rem, so the pointer-first
+  app above 1024px cannot be reached from this block. Nothing above this line
+  changes value.
+*/
+
+@layer components {
+  @media (width < 64rem) {
+    /*
+      Safari zooms the page on focus for any field under 16px and never zooms
+      back, which turns one tap on a search box into a broken layout. 16px is
+      the floor for anything focusable, and it is a functional rule rather than
+      a typographic one — a utility class on the element still wins, so a field
+      that wants to look smaller has to say so at `lg:` and mean it.
+    */
+    .input,
+    .select {
+      font-size: 1rem;
+    }
+
+    /* A pill sized for a mouse is a coin flip for a thumb. */
+    .tap {
+      min-height: var(--tap);
+      min-width: var(--tap);
+    }
   }
 }

@@ -120,9 +120,11 @@ export default function ThoughtEditor({
   return (
     <div className="mx-auto w-full max-w-4xl px-5 py-7 sm:px-8">
       <div className="flex items-center gap-4">
+        {/* Below `lg` the way back is the arrow in the top bar, which is where
+            a phone puts it on every other screen. */}
         <Link
           href="/thoughts"
-          className="font-data text-[0.7rem] text-ink-faint hover:text-ink"
+          className="font-data text-[0.7rem] text-ink-faint hover:text-ink max-lg:hidden"
         >
           ← all thoughts
         </Link>
@@ -144,13 +146,16 @@ export default function ThoughtEditor({
               q: `What else do I have about ${thought.title}?`,
             },
           }}
-          className="shrink-0 font-data text-[0.7rem] text-iris hover:underline"
+          className="shrink-0 font-data text-[0.7rem] text-iris hover:underline max-lg:hidden"
         >
           ask about this →
         </Link>
       </div>
 
-      <div className="mt-5 grid gap-x-8 gap-y-7 lg:grid-cols-[minmax(0,1fr)_16rem]">
+      {/* 768px holds a 15rem rail beside the reading column with ~450px left
+          for the body, which is a comfortable measure — so the two voices
+          separate at `md`, not only at `lg`. */}
+      <div className="mt-5 grid gap-x-8 gap-y-7 md:grid-cols-[minmax(0,1fr)_15rem] lg:grid-cols-[minmax(0,1fr)_16rem]">
         {/* Your words. */}
         <div className="min-w-0">
           <div className="flex items-start">
@@ -161,7 +166,17 @@ export default function ThoughtEditor({
                 e.target.value !== thought.title &&
                 void patch({ title: e.target.value })
               }
-              className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-1.5 py-1 font-hand text-[1.5rem] leading-tight tracking-[-0.01em] text-ink outline-none transition-colors hover:border-line focus:border-iris"
+              className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-1.5 py-1 font-hand text-[1.5rem] leading-tight tracking-[-0.01em] text-ink outline-none transition-colors hover:border-line focus:border-iris max-lg:border-line"
+            />
+          </div>
+
+          {/* The most-used control on the page. On a phone it goes directly
+              under the title rather than below however long the body turns out
+              to be. */}
+          <div className="mt-3 md:hidden">
+            <StatusControl
+              status={thought.status}
+              onPick={(next) => void patch(statusPatch(next))}
             />
           </div>
 
@@ -173,11 +188,17 @@ export default function ThoughtEditor({
               e.target.value !== thought.body && void patch({ body: e.target.value })
             }
             rows={6}
-            className="mt-2 w-full resize-y rounded-lg border border-transparent bg-transparent px-1.5 py-1 font-hand text-[1rem] leading-[1.65] text-ink outline-none transition-colors placeholder:text-ink-faint hover:border-line focus:border-iris"
+            className="mt-2 w-full resize-y rounded-lg border border-transparent bg-transparent px-1.5 py-1 font-hand text-[1rem] leading-[1.65] text-ink outline-none transition-colors placeholder:text-ink-faint hover:border-line focus:border-iris max-lg:border-line"
           />
 
-          <p className="px-1.5 font-data text-[0.66rem] leading-relaxed text-ink-faint">
+          {/* A border that only exists on hover tells a thumb nothing, so below
+              `lg` both fields keep a hairline and the instruction matches the
+              gesture the reader has. */}
+          <p className="px-1.5 font-data text-[0.66rem] leading-relaxed text-ink-faint max-lg:hidden">
             Click any line to edit. Changes save when you click away.
+          </p>
+          <p className="hidden px-1.5 font-data text-[0.75rem] leading-relaxed text-ink-faint max-lg:block">
+            Tap any line to edit. Changes save when you tap away.
           </p>
 
           {dump && (
@@ -234,7 +255,7 @@ export default function ThoughtEditor({
 
         {/* What the app knows. */}
         <aside
-          className="min-w-0 border-t pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0"
+          className="min-w-0 border-t pt-6 md:border-l md:border-t-0 md:pl-6 md:pt-0"
           style={{ borderColor: "var(--line-strong)" }}
         >
           {thought.needs_review && (
@@ -244,37 +265,13 @@ export default function ThoughtEditor({
             </p>
           )}
 
-          <Field label="Status">
-            <div
-              className="flex rounded-full border p-0.5"
-              style={{ borderColor: "var(--line-strong)" }}
-              role="group"
-            >
-              {STATUSES.map((status) => {
-                const on = thought.status === status.value;
-                return (
-                  <button
-                    key={status.value}
-                    type="button"
-                    onClick={() => void patch(statusPatch(status.value))}
-                    aria-pressed={on}
-                    className={`flex-1 rounded-full py-1 text-[0.72rem] transition-colors ${
-                      on ? "" : "text-ink-soft hover:text-ink"
-                    }`}
-                    style={
-                      on
-                        ? {
-                            background: `var(--${status.tone}-soft)`,
-                            color: `var(--${status.tone})`,
-                          }
-                        : undefined
-                    }
-                  >
-                    {status.label}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Drawn under the title instead below `md`, where there is no rail
+              to put it in — same control, moved. */}
+          <Field label="Status" className="max-md:hidden">
+            <StatusControl
+              status={thought.status}
+              onPick={(next) => void patch(statusPatch(next))}
+            />
           </Field>
 
           <Field label="Dates">
@@ -321,14 +318,14 @@ export default function ThoughtEditor({
               </p>
             ) : (
               <>
-                <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5 max-lg:gap-2">
                   {onTags.map((tag) => (
                     <button
                       key={tag.id}
                       type="button"
                       onClick={() => toggleTag(tag.id)}
                       title={`Remove ${tag.name}`}
-                      className="rounded-full transition-opacity hover:opacity-60"
+                      className="rounded-full transition-opacity hover:opacity-60 max-lg:inline-flex max-lg:h-11 max-lg:items-center max-lg:px-1"
                     >
                       <TagChip name={tag.name} color={tag.color || "iris"} />
                     </button>
@@ -338,21 +335,21 @@ export default function ThoughtEditor({
                       type="button"
                       onClick={() => setAddingTag(!addingTag)}
                       aria-expanded={addingTag}
-                      className="rounded-full border border-line-strong px-2 py-0.5 text-[0.7rem] text-ink-soft transition-colors hover:border-iris hover:text-ink"
+                      className="rounded-full border border-line-strong px-2 py-0.5 text-[0.7rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:px-4 max-lg:text-[0.9rem]"
                     >
                       {addingTag ? "done" : "+ tag"}
                     </button>
                   )}
                 </div>
                 {addingTag && (
-                  <div className="mt-2 flex flex-wrap gap-1.5 motion-safe:animate-[flux-unfold_180ms_ease-out]">
+                  <div className="mt-2 flex flex-wrap gap-1.5 motion-safe:animate-[flux-unfold_180ms_ease-out] max-lg:gap-2">
                     {offTags.map((tag) => (
                       <button
                         key={tag.id}
                         type="button"
                         onClick={() => toggleTag(tag.id)}
                         title={`Add ${tag.name}`}
-                        className="rounded-full opacity-55 transition-opacity hover:opacity-100"
+                        className="rounded-full opacity-55 transition-opacity hover:opacity-100 max-lg:inline-flex max-lg:h-11 max-lg:items-center max-lg:px-1 max-lg:opacity-100"
                       >
                         <TagChip name={tag.name} color={tag.color || "iris"} />
                       </button>
@@ -414,15 +411,31 @@ export default function ThoughtEditor({
             )}
           </Field>
 
+          {/* The desktop puts this at the top of the page, where a phone has a
+              back arrow and a title and no third slot. It is a secondary
+              action, so below `lg` it joins the other secondary actions at the
+              end of the rail. */}
+          <Link
+            href={{
+              pathname: "/ask",
+              query: {
+                q: `What else do I have about ${thought.title}?`,
+              },
+            }}
+            className="mt-6 hidden h-11 items-center justify-center rounded-full border border-line-strong text-[0.95rem] text-iris max-lg:flex"
+          >
+            ask about this →
+          </Link>
+
           <div className="mt-6 border-t border-line pt-4">
             <button
               type="button"
               onClick={() => void remove()}
-              className="text-[0.74rem] text-ink-faint transition-colors hover:text-blush"
+              className="text-[0.74rem] text-ink-faint transition-colors hover:text-blush max-lg:h-11 max-lg:text-[0.95rem]"
             >
               Delete this thought
             </button>
-            <p className="mt-1 text-[0.68rem] leading-relaxed text-ink-faint">
+            <p className="mt-1 text-[0.68rem] leading-relaxed text-ink-faint max-lg:text-[0.8rem]">
               The original message stays — only this organised version goes.
             </p>
           </div>
@@ -434,14 +447,66 @@ export default function ThoughtEditor({
 
 /** A labelled block in the rail. Spacing carries the grouping; only the first
  *  field needs no rule above it, so no dividers are drawn at all. */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  className = "",
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="mb-5 last:mb-0">
-      <h2 className="mb-1.5 font-data text-[0.62rem] uppercase tracking-[0.14em] text-ink-faint">
+    <section className={`mb-5 last:mb-0 ${className}`}>
+      <h2 className="mb-1.5 font-data text-[0.62rem] uppercase tracking-[0.14em] text-ink-faint max-lg:text-[0.75rem]">
         {label}
       </h2>
       {children}
     </section>
+  );
+}
+
+/** Three states, one control, drawn the same wherever it lands — the rail on a
+ *  desktop, directly under the title on a phone. */
+function StatusControl({
+  status,
+  onPick,
+}: {
+  status: ThoughtRecord["status"];
+  onPick: (status: (typeof STATUSES)[number]["value"]) => void;
+}) {
+  return (
+    <div
+      className="flex rounded-full border p-0.5"
+      style={{ borderColor: "var(--line-strong)" }}
+      role="group"
+      aria-label="Status"
+    >
+      {STATUSES.map((option) => {
+        const on = status === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onPick(option.value)}
+            aria-pressed={on}
+            className={`flex-1 rounded-full py-1 text-[0.72rem] transition-colors max-lg:h-11 max-lg:text-[0.9rem] ${
+              on ? "" : "text-ink-soft hover:text-ink"
+            }`}
+            style={
+              on
+                ? {
+                    background: `var(--${option.tone}-soft)`,
+                    color: `var(--${option.tone})`,
+                  }
+                : undefined
+            }
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -463,8 +528,10 @@ function DateRow({
 
   if (editing) {
     return (
-      <label className="flex flex-col gap-1 py-1">
-        <span className="font-data text-[0.66rem] text-ink-soft">{label}</span>
+      <label className="flex flex-col gap-1 py-1 max-lg:py-2">
+        <span className="font-data text-[0.66rem] text-ink-soft max-lg:text-[0.8rem]">
+          {label}
+        </span>
         <input
           type="datetime-local"
           autoFocus
@@ -480,7 +547,7 @@ function DateRow({
             setEditing(false);
             if (next !== value) onChange(next);
           }}
-          className="input py-1.5 font-data text-[0.72rem]"
+          className="input py-1.5 font-data lg:text-[0.72rem]"
         />
       </label>
     );
@@ -490,11 +557,13 @@ function DateRow({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className="group flex items-baseline justify-between gap-2 rounded-lg py-1 text-left"
+      className="group flex items-baseline justify-between gap-2 rounded-lg py-1 text-left max-lg:min-h-[var(--tap)] max-lg:items-center max-lg:border-b max-lg:border-line max-lg:px-1"
     >
-      <span className="shrink-0 font-data text-[0.66rem] text-ink-soft">{label}</span>
+      <span className="shrink-0 font-data text-[0.66rem] text-ink-soft max-lg:text-[0.8rem]">
+        {label}
+      </span>
       <span
-        className={`min-w-0 text-right text-[0.74rem] transition-colors ${
+        className={`min-w-0 text-right text-[0.74rem] transition-colors max-lg:text-[0.95rem] ${
           value
             ? "text-ink"
             : "text-ink-faint group-hover:text-ink-soft"

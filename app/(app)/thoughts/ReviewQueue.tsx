@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import Sheet from "@/components/Sheet";
+import { useIsCompact } from "@/lib/breakpoint";
 import { pb } from "@/lib/pb";
 import type { ThoughtRecord } from "@/lib/types";
 
@@ -117,7 +119,7 @@ export default function ReviewQueue({
         <button
           type="button"
           onClick={onLeave}
-          className="mt-3 rounded-full border border-line-strong px-4 py-1.5 text-[0.8rem] text-ink-soft hover:border-iris hover:text-ink"
+          className="mt-3 rounded-full border border-line-strong px-4 py-1.5 text-[0.8rem] text-ink-soft hover:border-iris hover:text-ink max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
         >
           Back to open
         </button>
@@ -127,32 +129,36 @@ export default function ReviewQueue({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="max-w-[52ch] text-[0.8rem] leading-relaxed text-ink-soft">
+      <p className="max-w-[52ch] text-[0.8rem] leading-relaxed text-ink-soft max-lg:text-[0.95rem]">
         The AI wasn&apos;t sure about these. What you decide here is what it
         learns from.
       </p>
 
       {merging.length === 2 && (
-        <div className="flex items-center gap-3 rounded-xl bg-iris-soft px-3.5 py-2.5">
-          <span className="text-[0.8rem] text-iris">Two picked.</span>
+        <div className="flex items-center gap-3 rounded-xl bg-iris-soft px-3.5 py-2.5 max-lg:flex-col max-lg:items-stretch max-lg:gap-2">
+          <span className="text-[0.8rem] text-iris max-lg:text-[0.95rem]">
+            Two picked.
+          </span>
           <button
             type="button"
             onClick={() => void merge()}
-            className="rounded-full bg-iris px-3 py-1 text-[0.76rem] text-white dark:text-[#1a1622]"
+            className="rounded-full bg-iris px-3 py-1 text-[0.76rem] text-white dark:text-[#1a1622] max-lg:h-11 max-lg:text-[0.95rem]"
           >
             Make them one
           </button>
           <button
             type="button"
             onClick={() => setMerging([])}
-            className="text-[0.76rem] text-iris hover:underline"
+            className="text-[0.76rem] text-iris hover:underline max-lg:h-11 max-lg:text-[0.95rem]"
           >
             Cancel
           </button>
         </div>
       )}
 
-      {error && <p className="text-[0.78rem] text-blush">{error}</p>}
+      {error && (
+        <p className="text-[0.78rem] text-blush max-lg:text-[0.95rem]">{error}</p>
+      )}
 
       <ul>
         {items.map((thought) => (
@@ -215,14 +221,14 @@ function ReviewRow({
         <button
           type="button"
           onClick={onToggle}
-          className={`flex w-full items-center gap-3 rounded-lg px-1.5 py-2.5 text-left transition-colors hover:bg-surface-2 ${
+          className={`flex w-full items-center gap-3 rounded-lg px-1.5 py-2.5 text-left transition-colors hover:bg-surface-2 max-lg:min-h-[3.5rem] ${
             picked ? "bg-iris-soft" : ""
           }`}
         >
-          <span className="min-w-0 flex-1 truncate text-[0.88rem] text-ink">
+          <span className="min-w-0 flex-1 truncate text-[0.88rem] text-ink max-lg:text-[0.95rem]">
             {thought.title}
           </span>
-          <span className="shrink-0 font-data text-[0.62rem] text-ink-faint">
+          <span className="shrink-0 font-data text-[0.62rem] text-ink-faint max-lg:text-[0.75rem]">
             {sure}%
           </span>
         </button>
@@ -252,7 +258,7 @@ function ReviewRow({
             {thought.body}
           </p>
 
-          <p className="mt-2 font-data text-[0.64rem] text-ink-soft">
+          <p className="mt-2 font-data text-[0.64rem] text-ink-soft max-lg:text-[0.75rem]">
             {sure}% sure
             {thought.date_source_text
               ? ` · read “${thought.date_source_text}” as a date`
@@ -260,35 +266,40 @@ function ReviewRow({
           </p>
 
           <div className="mt-3 border-t border-ink/10 pt-2.5">
-            <p className="font-data text-[0.62rem] uppercase tracking-[0.1em] text-ink-soft">
+            <p className="font-data text-[0.62rem] uppercase tracking-[0.1em] text-ink-soft max-lg:text-[0.75rem]">
               is this right?
             </p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {/* Four answers to one question. On a pointer they wrap along a
+                line; under a thumb they are a fixed two-by-two, so the same
+                answer is always in the same corner. */}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 max-lg:grid max-lg:grid-cols-2 max-lg:gap-2">
               <button
                 type="button"
                 onClick={onAccept}
-                className="rounded-full bg-surface px-3 py-1.5 text-[0.76rem] font-medium text-ink transition-opacity hover:opacity-80"
+                className="rounded-full bg-surface px-3 py-1.5 text-[0.76rem] font-medium text-ink transition-opacity hover:opacity-80 max-lg:h-11 max-lg:bg-iris max-lg:text-[0.9rem] max-lg:text-white dark:max-lg:text-[#1a1622]"
               >
                 Yes, keep it
               </button>
               <Link
                 href={`/thoughts/${thought.id}`}
-                className="rounded-full px-2.5 py-1.5 text-[0.76rem] text-ink-soft hover:text-ink"
+                className="rounded-full px-2.5 py-1.5 text-[0.76rem] text-ink-soft hover:text-ink max-lg:grid max-lg:h-11 max-lg:place-items-center max-lg:border max-lg:border-line-strong max-lg:text-[0.9rem]"
               >
                 Edit fully
               </Link>
               <button
                 type="button"
                 onClick={onSplit}
-                className="rounded-full px-2.5 py-1.5 text-[0.76rem] text-ink-soft hover:text-ink"
+                className="rounded-full px-2.5 py-1.5 text-[0.76rem] text-ink-soft hover:text-ink max-lg:h-11 max-lg:border max-lg:border-line-strong max-lg:text-[0.9rem]"
               >
                 Split in two
               </button>
               <button
                 type="button"
                 onClick={onPick}
-                className={`rounded-full px-2.5 py-1.5 text-[0.76rem] ${
-                  picked ? "text-iris" : "text-ink-soft hover:text-ink"
+                className={`rounded-full px-2.5 py-1.5 text-[0.76rem] max-lg:h-11 max-lg:border max-lg:text-[0.9rem] ${
+                  picked
+                    ? "text-iris max-lg:border-iris max-lg:bg-iris-soft"
+                    : "text-ink-soft hover:text-ink max-lg:border-line-strong"
                 }`}
               >
                 {picked ? "Picked to merge" : "Merge with another"}
@@ -313,6 +324,7 @@ function SplitDialog({
   const [first, setFirst] = useState(thought.body);
   const [second, setSecond] = useState("");
   const [busy, setBusy] = useState(false);
+  const compact = useIsCompact();
 
   async function split() {
     if (!second.trim()) return;
@@ -339,27 +351,70 @@ function SplitDialog({
     onDone(thought.id);
   }
 
+  const fields = (
+    <>
+      <p className="mt-1 text-[0.78rem] text-ink-soft max-lg:mt-0 max-lg:text-[0.95rem] max-lg:leading-snug">
+        Move the second idea into the lower box. Both halves keep the same
+        original message.
+      </p>
+      <textarea
+        value={first}
+        onChange={(e) => setFirst(e.target.value)}
+        rows={3}
+        aria-label="The first thought"
+        className="input mt-3 font-hand"
+      />
+      <textarea
+        value={second}
+        onChange={(e) => setSecond(e.target.value)}
+        rows={3}
+        placeholder="The second thought…"
+        aria-label="The second thought"
+        className="input mt-2 font-hand"
+      />
+    </>
+  );
+
+  // With a keyboard up, a centred `fixed inset-0` card puts its buttons below
+  // the fold of a screen that is now half the height it was — the two controls
+  // that finish the job are simply gone. In a sheet they are pinned to a footer
+  // the keyboard cannot cover.
+  if (compact) {
+    return (
+      <Sheet
+        open
+        onClose={onClose}
+        title="Split this in two"
+        footer={
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void split()}
+              disabled={!second.trim() || busy}
+              className="tap flex-1 rounded-full bg-iris text-[0.95rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622]"
+            >
+              {busy ? "Splitting…" : "Split"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="tap rounded-full px-4 text-[0.95rem] text-ink-soft"
+            >
+              Cancel
+            </button>
+          </div>
+        }
+      >
+        {fields}
+      </Sheet>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
       <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-window)]">
         <h2 className="text-[0.95rem] font-semibold text-ink">Split this in two</h2>
-        <p className="mt-1 text-[0.78rem] text-ink-soft">
-          Move the second idea into the lower box. Both halves keep the same
-          original message.
-        </p>
-        <textarea
-          value={first}
-          onChange={(e) => setFirst(e.target.value)}
-          rows={3}
-          className="input mt-3 font-hand"
-        />
-        <textarea
-          value={second}
-          onChange={(e) => setSecond(e.target.value)}
-          rows={3}
-          placeholder="The second thought…"
-          className="input mt-2 font-hand"
-        />
+        {fields}
         <div className="mt-3 flex items-center gap-2">
           <button
             type="button"

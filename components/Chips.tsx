@@ -4,6 +4,11 @@ import { toDate } from "@/lib/time";
  * The house disclosure marker. Same shape and same rotation everywhere, so
  * "there is more under this" is one learned gesture rather than a per-screen
  * invention.
+ *
+ * Callers fade it in on hover, which is a good way to keep a list quiet with a
+ * pointer and no way at all with a thumb — there is no hover to reveal it. So
+ * below the desktop breakpoint it is simply there, once, here, rather than in
+ * every caller.
  */
 export function Caret({
   open,
@@ -18,7 +23,7 @@ export function Caret({
     <svg
       aria-hidden="true"
       viewBox="0 0 10 10"
-      className={`h-2.5 w-2.5 shrink-0 transition-[transform,opacity,color] duration-150 ${
+      className={`h-2.5 w-2.5 shrink-0 transition-[transform,opacity,color] duration-150 max-lg:opacity-100 ${
         open ? "rotate-180" : ""
       } ${className}`}
       style={open && tone ? { color: `var(--${tone})` } : undefined}
@@ -46,7 +51,7 @@ export function TagChip({
 }) {
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[0.7rem] ${muted ? "opacity-60" : ""}`}
+      className={`rounded-full px-2 py-0.5 text-[0.7rem] max-lg:text-[0.85rem] ${muted ? "opacity-60" : ""}`}
       style={{ background: `var(--${color}-soft)`, color: `var(--${color})` }}
     >
       {name}

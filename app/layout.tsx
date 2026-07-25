@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, DM_Mono, Newsreader } from "next/font/google";
 
 import { themeScript } from "@/lib/theme";
@@ -29,6 +29,29 @@ export const metadata: Metadata = {
   icons: {
     icon: "/wind.svg",
   },
+};
+
+/**
+ * `viewportFit: "cover"` is what makes `env(safe-area-inset-*)` return real
+ * numbers — without it the phone reports zero and the sill sits under the home
+ * indicator.
+ *
+ * Zoom is deliberately left alone. Pinch is how someone reads a screen they
+ * can't quite see, and the usual reason to disable it — Safari zooming on
+ * focus — is fixed at the source in globals.css by putting a 16px floor under
+ * every field.
+ *
+ * themeColor is the two paper stocks the default palette prints on, so the
+ * browser chrome above the window matches the page behind it.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ece8f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#14121a" },
+  ],
 };
 
 export default function RootLayout({

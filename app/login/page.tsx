@@ -14,24 +14,31 @@ const SPLIT_DEMO = [
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center p-3 sm:p-6">
+    // Safe-area insets are written as `max-lg:` utilities rather than as an
+    // inline style: an inline padding would beat `sm:p-6` at every width,
+    // including the desktop the freeze protects.
+    <div className="flex min-h-dvh w-full items-center justify-center p-3 sm:p-6 max-lg:pb-[max(0.75rem,var(--safe-bottom))] max-lg:pl-[max(0.75rem,var(--safe-left))] max-lg:pr-[max(0.75rem,var(--safe-right))] max-lg:pt-[max(0.75rem,var(--safe-top))]">
       <div
         className="grid w-full max-w-3xl overflow-hidden rounded-[var(--radius-window)] border border-line bg-surface md:grid-cols-[1.05fr_1fr]"
         style={{ boxShadow: "var(--shadow-window)" }}
       >
-        <section className="relative flex flex-col justify-between gap-8 border-line bg-surface-2 p-7 max-md:border-b md:border-r md:p-9">
+        {/* On a phone the two halves are stacked, and the half that does the
+            job goes first: on a 320×568 screen the pitch would otherwise push
+            the sign-in buttons off the bottom of the only screen that matters
+            before you have an account. The story still reads, underneath. */}
+        <section className="relative flex flex-col justify-between gap-8 border-line bg-surface-2 p-7 max-md:order-last max-md:gap-6 max-md:border-b-0 max-md:border-t md:border-r md:p-9">
           <div className="flex items-center gap-2">
             <Wind className="h-4 w-4 text-ink" strokeWidth={2} />
             <span className="font-semibold tracking-tight text-ink">BIT Flux</span>
           </div>
 
           <div>
-            <h1 className="font-hand text-[2.1rem] leading-[1.12] tracking-[-0.015em] text-ink">
+            <h1 className="font-hand text-[2.1rem] leading-[1.12] tracking-[-0.015em] text-ink max-lg:text-[1.75rem]">
               Write it down now.
               <br />
               <span className="text-iris">Sort it out later.</span>
             </h1>
-            <p className="mt-3 max-w-[24ch] text-[0.85rem] leading-relaxed text-ink-soft">
+            <p className="mt-3 max-w-[24ch] text-[0.85rem] leading-relaxed text-ink-soft max-lg:max-w-none max-lg:text-[0.95rem]">
               Dump everything in one box. It gets split, titled and tagged for
               you — the original always kept.
             </p>
@@ -49,9 +56,11 @@ export default function LoginPage() {
                     className="h-1.5 w-1.5 shrink-0 rounded-full"
                     style={{ background: `var(--${item.tone})` }}
                   />
-                  <span className="text-[0.78rem] text-ink">{item.text}</span>
+                  <span className="text-[0.78rem] text-ink max-lg:text-[0.875rem]">
+                    {item.text}
+                  </span>
                   <span
-                    className="font-data text-[0.64rem]"
+                    className="font-data text-[0.64rem] max-lg:text-[0.75rem]"
                     style={{ color: `var(--${item.tone})` }}
                   >
                     #{item.tag}
@@ -68,7 +77,7 @@ export default function LoginPage() {
               <h2 className="text-[1.05rem] font-semibold tracking-tight text-ink">
                 Sign in
               </h2>
-              <p className="mt-1 text-[0.8rem] text-ink-soft">
+              <p className="mt-1 text-[0.8rem] text-ink-soft max-lg:text-[0.95rem]">
                 Pick an account. Nothing else to fill in.
               </p>
             </div>
@@ -84,7 +93,7 @@ export default function LoginPage() {
             <LoginPanel />
           </Suspense>
 
-          <p className="font-data text-[0.68rem] leading-relaxed text-ink-faint">
+          <p className="font-data text-[0.68rem] leading-relaxed text-ink-faint max-lg:text-[0.75rem]">
             Your thoughts stay in your own account. Nothing is shared.
           </p>
         </section>

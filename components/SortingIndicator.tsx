@@ -8,6 +8,8 @@ import { sortingStore } from "@/lib/sorting-store";
  * Pinned to the window's bottom-right corner. Sorting happens in the
  * background so capture never blocks, but silent background work is
  * unnerving — this is the receipt that something is happening.
+ *
+ * On a phone that corner is the sill, so the receipt sits above it.
  */
 export default function SortingIndicator() {
   const active = useSyncExternalStore(
@@ -22,7 +24,7 @@ export default function SortingIndicator() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none absolute bottom-4 right-4 z-40 flex items-center gap-2 rounded-full border border-line bg-surface-2/90 px-3 py-1.5 backdrop-blur"
+      className="pointer-events-none absolute bottom-4 right-4 z-40 flex items-center gap-2 rounded-full border border-line bg-surface-2/90 px-3 py-1.5 backdrop-blur max-md:bottom-[calc(1rem+var(--sill-h)+var(--safe-bottom))]"
       style={{ boxShadow: "0 4px 16px -6px rgb(0 0 0 / 0.25)" }}
     >
       <Spinner />

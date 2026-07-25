@@ -180,7 +180,7 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
             {providers.length || "none yet"}
           </span>
         </div>
-        <p className="px-4 pb-3 text-[0.76rem] leading-relaxed text-ink-soft">
+        <p className="px-4 pb-3 text-[0.76rem] leading-relaxed text-ink-soft max-lg:text-[0.875rem]">
           Add as many as you like, then pick which of their models you want
           offered. Which one runs is chosen on{" "}
           <Link href="/" className="text-iris underline underline-offset-2">
@@ -218,7 +218,7 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
           <button
             type="button"
             onClick={() => setDrafts((prev) => [...prev, newDraft()])}
-            className="rounded-full border border-line-strong px-3.5 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink"
+            className="rounded-full border border-line-strong px-3.5 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
           >
             {providers.length === 0 && drafts.length === 0
               ? "Add a provider"
@@ -237,10 +237,10 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
           className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
         >
           <span className="min-w-0 flex-1">
-            <span className="block text-[0.88rem] font-semibold text-ink">
+            <span className="block text-[0.88rem] font-semibold text-ink max-lg:text-[0.95rem]">
               Search by meaning
             </span>
-            <span className="mt-0.5 block text-[0.76rem] text-ink-soft">
+            <span className="mt-0.5 block text-[0.76rem] text-ink-soft max-lg:text-[0.875rem]">
               Finds related thoughts even when the words don&apos;t match.
             </span>
           </span>
@@ -274,7 +274,7 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
                   <button
                     type="button"
                     onClick={() => setReplacingEmbedKey(true)}
-                    className="text-[0.76rem] text-iris underline underline-offset-2"
+                    className="text-[0.76rem] text-iris underline underline-offset-2 max-lg:h-11 max-lg:px-2 max-lg:text-[0.95rem]"
                   >
                     Replace
                   </button>
@@ -293,7 +293,7 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
                     href="https://aistudio.google.com/apikey"
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1.5 inline-block text-[0.74rem] text-iris underline underline-offset-2"
+                    className="mt-1.5 inline-block text-[0.74rem] text-iris underline underline-offset-2 max-lg:inline-flex max-lg:h-11 max-lg:items-center max-lg:text-[0.95rem]"
                   >
                     Get a key from Google AI Studio
                   </a>
@@ -324,12 +324,15 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
                 <button
                   type="button"
                   onClick={() => void backfill()}
-                  className="rounded-full border border-line-strong px-3.5 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink"
+                  className="rounded-full border border-line-strong px-3.5 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
                 >
                   Index older thoughts
                 </button>
                 {indexing && (
-                  <span role="status" className="text-[0.76rem] text-ink-soft">
+                  <span
+                    role="status"
+                    className="text-[0.76rem] text-ink-soft max-lg:text-[0.875rem]"
+                  >
                     {indexing}
                   </span>
                 )}
@@ -352,7 +355,11 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
 
       {/* Every result lands in the same place, whichever button produced it —
           nothing to hunt for after pressing something. */}
-      <p role="status" aria-live="polite" className="min-h-[1.15rem] px-1 text-[0.78rem]">
+      <p
+        role="status"
+        aria-live="polite"
+        className="min-h-[1.15rem] px-1 text-[0.78rem] max-lg:text-[0.875rem]"
+      >
         {status.message && (
           <span
             style={{
@@ -364,9 +371,12 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
         )}
       </p>
 
-      <p className="px-1 text-[0.78rem] text-ink-soft">
+      <p className="px-1 text-[0.78rem] text-ink-soft max-lg:text-[0.875rem]">
         Tags teach the AI how you think about your own work.{" "}
-        <Link href="/tags" className="text-iris underline underline-offset-2">
+        <Link
+          href="/tags"
+          className="text-iris underline underline-offset-2 max-lg:inline-flex max-lg:h-11 max-lg:items-center"
+        >
           Manage tags
         </Link>
       </p>
@@ -374,8 +384,11 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
       {/* Follows you down the page, and only exists when there's a change to
           keep — no permanently-lit Save to wonder about. */}
       {dirty && (
-        <div className="sticky bottom-0 -mx-1 mt-1 flex items-center gap-3 rounded-2xl border border-line-strong bg-surface-2 px-3 py-2.5">
-          <span className="min-w-0 flex-1 truncate text-[0.78rem] text-ink-soft">
+        // The bar follows the page down; below `md` the sill and the home
+        // indicator are already sitting at the bottom of the screen, so it
+        // stops above both rather than under them.
+        <div className="sticky bottom-0 -mx-1 mt-1 flex items-center gap-3 rounded-2xl border border-line-strong bg-surface-2 px-3 py-2.5 max-md:bottom-[calc(var(--sill-h)+var(--safe-bottom))]">
+          <span className="min-w-0 flex-1 truncate text-[0.78rem] text-ink-soft max-lg:text-[0.875rem]">
             {ready.length > 0
               ? `${ready.length} provider${ready.length === 1 ? "" : "s"} ready to add`
               : "Unsaved changes"}
@@ -384,7 +397,7 @@ export default function SettingsForm({ initial }: { initial: SafeSettings }) {
             type="button"
             onClick={() => void save()}
             disabled={status.kind === "saving"}
-            className="shrink-0 rounded-full bg-iris px-4 py-2 text-[0.82rem] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:text-[#1a1622]"
+            className="shrink-0 rounded-full bg-iris px-4 py-2 text-[0.82rem] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 dark:text-[#1a1622] max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
           >
             {status.kind === "saving" ? "Saving…" : "Save changes"}
           </button>
@@ -455,16 +468,16 @@ function ProviderRow({
           className="h-2 w-2 shrink-0 rounded-full"
           style={{ background: `var(--${PROVIDER_TONE[provider.provider]})` }}
         />
-        <span className="min-w-0 flex-1 truncate text-[0.84rem] text-ink">
+        <span className="min-w-0 flex-1 truncate text-[0.84rem] text-ink max-lg:text-[0.95rem]">
           {provider.label}
         </span>
-        <span className="shrink-0 font-data text-[0.72rem] text-ink-faint">
+        <span className="shrink-0 font-data text-[0.72rem] text-ink-faint max-lg:text-[0.8rem]">
           {provider.key_hint || "no key"}
         </span>
       </div>
 
       {provider.base_url && (
-        <p className="truncate font-data text-[0.68rem] text-ink-faint">
+        <p className="truncate font-data text-[0.68rem] text-ink-faint max-lg:text-[0.8rem]">
           {provider.base_url}
         </p>
       )}
@@ -475,18 +488,18 @@ function ProviderRow({
         type="button"
         onClick={() => setChoosing(!choosing)}
         aria-expanded={choosing}
-        className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors ${
+        className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors max-lg:min-h-[var(--tap)] ${
           provider.models.length === 0
             ? "border-amber/50 bg-amber-soft/40"
             : "border-line-strong hover:border-iris"
         }`}
       >
-        <span className="min-w-0 flex-1 text-[0.78rem] text-ink">
+        <span className="min-w-0 flex-1 text-[0.78rem] text-ink max-lg:text-[0.95rem]">
           {provider.models.length === 0
             ? "Pick available models"
             : `${provider.models.length} model${provider.models.length === 1 ? "" : "s"} available`}
         </span>
-        <span className="min-w-0 max-w-[45%] truncate font-data text-[0.68rem] text-ink-faint">
+        <span className="min-w-0 max-w-[45%] truncate font-data text-[0.68rem] text-ink-faint max-lg:hidden">
           {provider.models.slice(0, 3).join(", ")}
           {provider.models.length > 3 ? "…" : ""}
         </span>
@@ -503,7 +516,7 @@ function ProviderRow({
       )}
 
       {replacing ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 max-lg:flex-col max-lg:items-stretch">
           <input
             type="password"
             value={key}
@@ -517,39 +530,41 @@ function ProviderRow({
             type="button"
             onClick={() => void replace()}
             disabled={!key || busy}
-            className="shrink-0 rounded-full bg-iris px-3.5 py-1.5 text-[0.76rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622]"
+            className="shrink-0 rounded-full bg-iris px-3.5 py-1.5 text-[0.76rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622] max-lg:h-11 max-lg:text-[0.95rem]"
           >
             Save key
           </button>
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
+        // Three verbs in a row at 0.74rem is three coin flips on a phone; below
+        // `lg` each one gets a bordered pill it can be aimed at.
+        <div className="flex flex-wrap items-center gap-3 max-lg:gap-2">
           <button
             type="button"
             onClick={() => void test()}
             disabled={busy}
-            className="text-[0.74rem] text-ink-soft transition-colors hover:text-ink disabled:opacity-40"
+            className="text-[0.74rem] text-ink-soft transition-colors hover:text-ink disabled:opacity-40 max-lg:h-11 max-lg:rounded-full max-lg:border max-lg:border-line-strong max-lg:px-4 max-lg:text-[0.9rem]"
           >
             {busy ? "Testing…" : "Test"}
           </button>
           <button
             type="button"
             onClick={() => setReplacing(true)}
-            className="text-[0.74rem] text-ink-soft transition-colors hover:text-ink"
+            className="text-[0.74rem] text-ink-soft transition-colors hover:text-ink max-lg:h-11 max-lg:rounded-full max-lg:border max-lg:border-line-strong max-lg:px-4 max-lg:text-[0.9rem]"
           >
             Replace key
           </button>
           <button
             type="button"
             onClick={onRemove}
-            className="text-[0.74rem] text-ink-faint transition-colors hover:text-blush"
+            className="text-[0.74rem] text-ink-faint transition-colors hover:text-blush max-lg:h-11 max-lg:rounded-full max-lg:border max-lg:border-line-strong max-lg:px-4 max-lg:text-[0.9rem]"
           >
             Remove
           </button>
           {note && (
             <span
               role="status"
-              className="text-[0.74rem]"
+              className="text-[0.74rem] max-lg:w-full max-lg:text-[0.875rem]"
               style={{ color: note.ok ? "var(--mint)" : "var(--blush)" }}
             >
               {note.text}
@@ -694,7 +709,7 @@ function ModelChooser({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Find a model…"
           aria-label="Find a model"
-          className="input mb-1.5 h-8 py-0 font-data text-[0.74rem]"
+          className="input mb-1.5 h-8 py-0 font-data max-lg:h-11 lg:text-[0.74rem]"
         />
       )}
 
@@ -703,7 +718,10 @@ function ModelChooser({
           asking the endpoint…
         </p>
       ) : (
-        <div className="flux-scroll max-h-64 overflow-y-auto">
+        // Taller below `lg`: picking models is the whole screen's job at this
+        // moment, and a 16rem window into three hundred ids is a lot of
+        // scrolling for a thumb.
+        <div className="flux-scroll max-h-64 overflow-y-auto max-lg:max-h-[55dvh]">
           {shown.map((model) => {
             const on = picked.includes(model);
             return (
@@ -712,11 +730,11 @@ function ModelChooser({
                 type="button"
                 onClick={() => toggle(model)}
                 aria-pressed={on}
-                className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface-2"
+                className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-surface-2 max-lg:min-h-[var(--tap)] max-lg:gap-3 max-lg:px-2"
               >
                 <span
                   aria-hidden="true"
-                  className="grid h-4 w-4 shrink-0 place-items-center rounded-[5px] border transition-colors"
+                  className="grid h-4 w-4 shrink-0 place-items-center rounded-[5px] border transition-colors max-lg:h-5 max-lg:w-5"
                   style={{
                     borderColor: on ? "var(--iris)" : "var(--line-strong)",
                     background: on ? "var(--iris-soft)" : "transparent",
@@ -736,7 +754,7 @@ function ModelChooser({
                   )}
                 </span>
                 <span
-                  className={`min-w-0 flex-1 truncate font-data text-[0.74rem] leading-[1.4] ${
+                  className={`min-w-0 flex-1 truncate font-data text-[0.74rem] leading-[1.4] max-lg:text-[0.875rem] ${
                     on ? "text-ink" : "text-ink-soft"
                   }`}
                 >
@@ -765,13 +783,13 @@ function ModelChooser({
           }}
           placeholder="Add a model id by hand"
           aria-label="Add a model id by hand"
-          className="input h-8 py-0 font-data text-[0.74rem]"
+          className="input h-8 py-0 font-data max-lg:h-11 lg:text-[0.74rem]"
         />
         <button
           type="button"
           onClick={addManual}
           disabled={!manual.trim()}
-          className="shrink-0 rounded-full border border-line-strong px-3 py-1.5 text-[0.74rem] text-ink-soft transition-colors hover:border-iris hover:text-ink disabled:opacity-35"
+          className="shrink-0 rounded-full border border-line-strong px-3 py-1.5 text-[0.74rem] text-ink-soft transition-colors hover:border-iris hover:text-ink disabled:opacity-35 max-lg:h-11 max-lg:px-4 max-lg:text-[0.9rem]"
         >
           Add
         </button>
@@ -808,13 +826,13 @@ function DraftRow({
         <button
           type="button"
           onClick={onDrop}
-          className="ml-auto text-[0.74rem] text-ink-faint transition-colors hover:text-blush"
+          className="ml-auto text-[0.74rem] text-ink-faint transition-colors hover:text-blush max-lg:h-11 max-lg:px-2 max-lg:text-[0.9rem]"
         >
           Discard
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 max-lg:gap-2">
         {ORDER.map((id) => (
           <button
             key={id}
@@ -826,7 +844,7 @@ function DraftRow({
                 label: draft.label || PROVIDERS[id].label,
               })
             }
-            className={`rounded-full border px-3 py-1.5 text-[0.8rem] transition-colors ${
+            className={`rounded-full border px-3 py-1.5 text-[0.8rem] transition-colors max-lg:h-11 max-lg:px-4 max-lg:text-[0.95rem] ${
               draft.provider === id
                 ? "border-iris bg-iris-soft text-iris"
                 : "border-line-strong text-ink-soft hover:border-iris hover:text-ink"
@@ -869,7 +887,7 @@ function DraftRow({
               className="input"
             />
           )}
-          <p className="text-[0.74rem] leading-relaxed text-ink-soft">
+          <p className="text-[0.74rem] leading-relaxed text-ink-soft max-lg:text-[0.875rem]">
             Encrypted before it&apos;s stored. It never reaches the browser again.
           </p>
         </>
@@ -903,14 +921,19 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-line px-4 py-3.5 sm:flex-row sm:gap-4">
-      <div className="sm:w-32 sm:shrink-0 sm:pt-2">
-        <h2 className="text-[0.82rem] font-medium text-ink">{label}</h2>
+    // Label above value on a phone, beside it from a tablet up — the `sm:`
+    // this used to switch at sits inside the compact range and split phones
+    // from phones.
+    <div className="flex flex-col gap-2 border-t border-line px-4 py-3.5 md:flex-row md:gap-4">
+      <div className="md:w-32 md:shrink-0 md:pt-2">
+        <h2 className="text-[0.82rem] font-medium text-ink max-lg:text-[0.95rem]">
+          {label}
+        </h2>
       </div>
       <div className="min-w-0 flex-1">
         {children}
         {hint && !done && (
-          <p className="mt-1.5 text-[0.74rem] leading-relaxed text-ink-soft">
+          <p className="mt-1.5 text-[0.74rem] leading-relaxed text-ink-soft max-lg:text-[0.875rem]">
             {hint}
           </p>
         )}

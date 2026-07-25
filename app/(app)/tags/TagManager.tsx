@@ -76,23 +76,25 @@ export default function TagManager({
             {suggested.map((tag) => (
               <li
                 key={tag.id}
-                className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 rounded-lg px-1.5 py-2"
+                className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 rounded-lg px-1.5 py-2 max-lg:items-center"
               >
-                <span className="text-[0.88rem] font-medium text-ink">{tag.name}</span>
-                <span className="min-w-0 flex-1 text-[0.78rem] text-ink-soft">
+                <span className="min-w-0 max-w-full truncate text-[0.88rem] font-medium text-ink max-lg:text-[0.95rem]">
+                  {tag.name}
+                </span>
+                <span className="min-w-0 flex-1 break-words text-[0.78rem] text-ink-soft max-lg:w-full max-lg:flex-none max-lg:text-[0.875rem]">
                   {tag.description || "No description"}
                 </span>
                 <button
                   type="button"
                   onClick={() => void patch(tag.id, { approved: true })}
-                  className="rounded-full bg-mint-soft px-2.5 py-1 text-[0.72rem] text-mint"
+                  className="rounded-full bg-mint-soft px-2.5 py-1 text-[0.72rem] text-mint max-lg:h-11 max-lg:px-5 max-lg:text-[0.9rem]"
                 >
                   Keep
                 </button>
                 <button
                   type="button"
                   onClick={() => void remove(tag.id)}
-                  className="text-[0.72rem] text-ink-faint hover:text-blush"
+                  className="text-[0.72rem] text-ink-faint hover:text-blush max-lg:h-11 max-lg:px-3 max-lg:text-[0.9rem]"
                 >
                   No
                 </button>
@@ -109,7 +111,7 @@ export default function TagManager({
           </p>
         )}
         {approved.length === 0 && !adding ? (
-          <p className="px-1.5 text-[0.84rem] leading-relaxed text-ink-soft">
+          <p className="px-1.5 text-[0.84rem] leading-relaxed text-ink-soft max-lg:text-[0.95rem]">
             No tags yet. Add the ones you already think in — a project, a
             person, a theme you keep returning to.
           </p>
@@ -138,14 +140,14 @@ export default function TagManager({
                       <button
                         type="button"
                         onClick={() => setEditing(null)}
-                        className="rounded-full bg-iris px-3.5 py-1.5 text-[0.76rem] font-medium text-white dark:text-[#1a1622]"
+                        className="rounded-full bg-iris px-3.5 py-1.5 text-[0.76rem] font-medium text-white dark:text-[#1a1622] max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
                       >
                         Done
                       </button>
                       <button
                         type="button"
                         onClick={() => void remove(tag.id)}
-                        className="text-[0.76rem] text-ink-faint hover:text-blush"
+                        className="text-[0.76rem] text-ink-faint hover:text-blush max-lg:h-11 max-lg:text-[0.95rem]"
                       >
                         Delete tag
                       </button>
@@ -155,20 +157,30 @@ export default function TagManager({
                   <button
                     type="button"
                     onClick={() => setEditing(tag.id)}
-                    className="group flex w-full items-baseline gap-2.5 rounded-lg px-1.5 py-2.5 text-left transition-colors hover:bg-surface-2"
+                    className="group flex w-full items-baseline gap-2.5 rounded-lg px-1.5 py-2.5 text-left transition-colors hover:bg-surface-2 max-lg:min-h-[3.25rem] max-lg:items-center"
                   >
                     <span
                       aria-hidden="true"
-                      className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-full"
+                      className="h-2 w-2 shrink-0 translate-y-[-1px] rounded-full max-lg:translate-y-0"
                       style={{ background: `var(--${tag.color || "iris"})` }}
                     />
-                    <span className="shrink-0 text-[0.88rem] font-medium text-ink">
-                      {tag.name}
+                    {/* One line on a desktop — `contents` means this wrapper
+                        draws no box there, so the name and the description are
+                        still the row's own flex children. Below `lg` it becomes
+                        a column: a name, a description and an "edit" all on one
+                        360px line is three things fighting for the same
+                        hundred pixels, and the name cannot shrink. */}
+                    <span className="min-w-0 flex-1 max-lg:flex max-lg:flex-col lg:contents">
+                      <span className="truncate text-[0.88rem] font-medium text-ink max-lg:text-[0.95rem] lg:shrink-0">
+                        {tag.name}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[0.78rem] text-ink-soft max-lg:text-[0.875rem]">
+                        {tag.description || "Add a description so the AI knows when to use it"}
+                      </span>
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[0.78rem] text-ink-soft">
-                      {tag.description || "Add a description so the AI knows when to use it"}
-                    </span>
-                    <span className="shrink-0 font-data text-[0.62rem] text-ink-faint opacity-0 transition-opacity group-hover:opacity-100">
+                    {/* A word that only exists on hover is a word a thumb never
+                        reads, so below `lg` it is simply there. */}
+                    <span className="shrink-0 font-data text-[0.62rem] text-ink-faint opacity-0 transition-opacity group-hover:opacity-100 max-lg:text-[0.75rem] max-lg:opacity-100">
                       edit
                     </span>
                   </button>
@@ -199,7 +211,7 @@ export default function TagManager({
               type="button"
               onClick={() => void create()}
               disabled={!name.trim()}
-              className="rounded-full bg-iris px-4 py-1.5 text-[0.78rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622]"
+              className="rounded-full bg-iris px-4 py-1.5 text-[0.78rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622] max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
             >
               Add tag
             </button>
@@ -209,18 +221,22 @@ export default function TagManager({
                 setAdding(false);
                 setError(null);
               }}
-              className="text-[0.78rem] text-ink-soft hover:text-ink"
+              className="text-[0.78rem] text-ink-soft hover:text-ink max-lg:h-11 max-lg:text-[0.95rem]"
             >
               Cancel
             </button>
-            {error && <span className="text-[0.76rem] text-blush">{error}</span>}
+            {error && (
+              <span className="text-[0.76rem] text-blush max-lg:text-[0.875rem]">
+                {error}
+              </span>
+            )}
           </div>
         </section>
       ) : (
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="self-start rounded-full border border-line-strong px-4 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink"
+          className="self-start rounded-full border border-line-strong px-4 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
         >
           New tag
         </button>

@@ -145,7 +145,7 @@ export default function PeopleManager({
   return (
     <div className="flex flex-col gap-4">
       {entries.length === 0 && !adding ? (
-        <p className="px-1.5 text-[0.84rem] leading-relaxed text-ink-soft">
+        <p className="px-1.5 text-[0.84rem] leading-relaxed text-ink-soft max-lg:text-[0.95rem]">
           Nobody yet. Names appear here on their own as soon as you write about
           someone — or add the ones you already know you&apos;ll mention.
         </p>
@@ -168,7 +168,7 @@ export default function PeopleManager({
                         />
                       ) : (
                         <span
-                          className="text-[0.88rem] font-medium text-ink"
+                          className="min-w-0 truncate text-[0.88rem] font-medium text-ink max-lg:text-[0.95rem]"
                           title="This name comes from your thoughts, so it can't be renamed here"
                         >
                           {entry.name}
@@ -185,7 +185,7 @@ export default function PeopleManager({
                       <button
                         type="button"
                         onClick={() => setOpen(null)}
-                        className="rounded-full bg-iris px-3.5 py-1.5 text-[0.76rem] font-medium text-white dark:text-[#1a1622]"
+                        className="rounded-full bg-iris px-3.5 py-1.5 text-[0.76rem] font-medium text-white dark:text-[#1a1622] max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
                       >
                         Done
                       </button>
@@ -193,7 +193,7 @@ export default function PeopleManager({
                         <button
                           type="button"
                           onClick={() => void remove(entry)}
-                          className="text-[0.76rem] text-ink-faint hover:text-blush"
+                          className="text-[0.76rem] text-ink-faint hover:text-blush max-lg:h-11 max-lg:text-[0.95rem]"
                         >
                           {entry.mentions > 0 ? "Forget the note" : "Remove person"}
                         </button>
@@ -204,17 +204,24 @@ export default function PeopleManager({
                   <button
                     type="button"
                     onClick={() => setOpen(entry.key)}
-                    className="group flex w-full items-center gap-2.5 rounded-lg px-1.5 py-2 text-left transition-colors hover:bg-surface-2"
+                    className="group flex w-full items-center gap-2.5 rounded-lg px-1.5 py-2 text-left transition-colors hover:bg-surface-2 max-lg:min-h-[3.25rem]"
                   >
                     <Monogram name={entry.name} tone={tone} />
-                    <span className="shrink-0 text-[0.88rem] font-medium text-ink">
-                      {entry.name}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-[0.78rem] text-ink-soft">
-                      {entry.note || "Add a note so the AI knows who this is"}
+                    {/* `contents` on a desktop, so the name and the note are
+                        still the row's own flex children and nothing there
+                        moves. A column below it, because a name that cannot
+                        shrink beside a note that must is how a row grows wider
+                        than the screen. */}
+                    <span className="min-w-0 flex-1 max-lg:flex max-lg:flex-col lg:contents">
+                      <span className="truncate text-[0.88rem] font-medium text-ink max-lg:text-[0.95rem] lg:shrink-0">
+                        {entry.name}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[0.78rem] text-ink-soft max-lg:text-[0.875rem]">
+                        {entry.note || "Add a note so the AI knows who this is"}
+                      </span>
                     </span>
                     <span
-                      className="shrink-0 font-data text-[0.62rem] text-ink-faint"
+                      className="shrink-0 font-data text-[0.62rem] text-ink-faint max-lg:text-[0.75rem]"
                       title={`Mentioned in ${entry.mentions} ${entry.mentions === 1 ? "thought" : "thoughts"}`}
                     >
                       {entry.mentions > 0 ? entry.mentions : "—"}
@@ -227,7 +234,11 @@ export default function PeopleManager({
         </ul>
       )}
 
-      {error && <p className="px-1.5 text-[0.76rem] text-blush">{error}</p>}
+      {error && (
+        <p className="px-1.5 text-[0.76rem] text-blush max-lg:text-[0.875rem]">
+          {error}
+        </p>
+      )}
 
       {adding ? (
         <section className="flex flex-col gap-2 rounded-2xl border border-line bg-surface-2 p-3.5">
@@ -250,7 +261,7 @@ export default function PeopleManager({
               type="button"
               onClick={() => void create()}
               disabled={!name.trim()}
-              className="rounded-full bg-iris px-4 py-1.5 text-[0.78rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622]"
+              className="rounded-full bg-iris px-4 py-1.5 text-[0.78rem] font-medium text-white disabled:opacity-40 dark:text-[#1a1622] max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
             >
               Add person
             </button>
@@ -260,7 +271,7 @@ export default function PeopleManager({
                 setAdding(false);
                 setError(null);
               }}
-              className="text-[0.78rem] text-ink-soft hover:text-ink"
+              className="text-[0.78rem] text-ink-soft hover:text-ink max-lg:h-11 max-lg:text-[0.95rem]"
             >
               Cancel
             </button>
@@ -270,7 +281,7 @@ export default function PeopleManager({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="self-start rounded-full border border-line-strong px-4 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink"
+          className="self-start rounded-full border border-line-strong px-4 py-1.5 text-[0.78rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:px-5 max-lg:text-[0.95rem]"
         >
           New person
         </button>
@@ -283,7 +294,7 @@ function Monogram({ name, tone }: { name: string; tone: string }) {
   return (
     <span
       aria-hidden="true"
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-data text-[0.58rem] font-medium"
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-data text-[0.58rem] font-medium max-lg:h-7 max-lg:w-7 max-lg:text-[0.68rem]"
       style={{ background: `var(--${tone}-soft)`, color: `var(--${tone})` }}
     >
       {initials(name)}

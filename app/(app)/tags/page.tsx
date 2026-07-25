@@ -46,19 +46,32 @@ export default async function TagsPage() {
       <h1 className="font-hand text-[1.6rem] leading-tight tracking-[-0.01em] text-ink">
         Tags &amp; people
       </h1>
-      <p className="mt-1 max-w-[52ch] text-[0.82rem] leading-relaxed text-ink-soft">
+      <p className="mt-1 max-w-[52ch] text-[0.82rem] leading-relaxed text-ink-soft max-lg:text-[0.95rem]">
         Two things the AI files by: what a thought is about, and who it
         involves. Describe them here and the next thought lands where you&apos;d
         put it yourself.
       </p>
 
-      <div className="mt-7 grid gap-x-10 gap-y-9 lg:grid-cols-2">
-        <section>
+      {/* Two lists of short rows. A tablet has the width for both — at `lg` the
+          rule and the column widths are exactly what they were. */}
+      {/*
+        Two lists of short rows. A tablet has the width for both — at `lg` the
+        rule and the column widths are exactly what they were.
+
+        `min-w-0` on both columns is what actually keeps them on the screen: a
+        grid item's default minimum size is its min-content, and a row that
+        truncates its description is `white-space: nowrap`, whose min-content is
+        the entire untruncated line. Without this the column is as wide as the
+        longest description in it, the truncation never fires, and the page
+        scrolls sideways.
+      */}
+      <div className="mt-7 grid gap-x-10 gap-y-9 md:grid-cols-2">
+        <section className="min-w-0">
           <ColumnHead label="tags" count={tagCount} />
           <TagManager userId={user.id} initialTags={tags} />
         </section>
 
-        <section className="lg:border-l lg:border-line lg:pl-10">
+        <section className="min-w-0 md:border-l md:border-line md:pl-10">
           <ColumnHead label="people" count={peopleCount} />
           <PeopleManager
             userId={user.id}
@@ -76,10 +89,12 @@ export default async function TagsPage() {
 function ColumnHead({ label, count }: { label: string; count: number }) {
   return (
     <div className="mb-3.5 flex items-baseline justify-between border-b border-line pb-1.5">
-      <h2 className="font-data text-[0.64rem] uppercase tracking-[0.14em] text-ink-faint">
+      <h2 className="font-data text-[0.64rem] uppercase tracking-[0.14em] text-ink-faint max-lg:text-[0.75rem]">
         {label}
       </h2>
-      <span className="font-data text-[0.64rem] text-ink-faint">{count}</span>
+      <span className="font-data text-[0.64rem] text-ink-faint max-lg:text-[0.75rem]">
+        {count}
+      </span>
     </div>
   );
 }

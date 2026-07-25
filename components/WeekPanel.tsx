@@ -1,15 +1,14 @@
 import Link from "next/link";
 
 import type { DashboardData } from "@/lib/dashboard";
-import type { ThoughtRecord } from "@/lib/types";
-import { toDate } from "@/lib/time";
+import { tone, weekItems, when } from "./week-panel-data";
 
 /**
  * The only thing allowed to share the capture screen. Deliberately small and
  * in the corner: capture is the job here, this is peripheral vision.
  */
 export default function WeekPanel({ data }: { data: DashboardData }) {
-  const items = [...data.overdue, ...data.today, ...data.upcoming].slice(0, 5);
+  const items = weekItems(data);
   const late = data.overdue.length;
 
   if (items.length === 0 && data.needsReview === 0) return null;
@@ -63,24 +62,4 @@ export default function WeekPanel({ data }: { data: DashboardData }) {
       )}
     </aside>
   );
-}
-
-function tone(thought: ThoughtRecord, data: DashboardData): string {
-  if (data.overdue.some((t) => t.id === thought.id)) return "blush";
-  if (data.today.some((t) => t.id === thought.id)) return "apricot";
-  return "sky";
-}
-
-function when(thought: ThoughtRecord): string {
-  const value = thought.deadline || thought.action_date;
-  if (!value) return "";
-  const vague =
-    thought.date_precision === "week" ||
-    thought.date_precision === "month" ||
-    thought.date_precision === "vague";
-  if (vague) return thought.date_precision === "week" ? "this wk" : "later";
-  return toDate(value).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-  });
 }

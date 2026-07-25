@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { Caret } from "@/components/Chips";
+import Sheet from "@/components/Sheet";
+import { useIsCompact } from "@/lib/breakpoint";
 import {
   modelStore,
   PROVIDER_TONE,
@@ -56,6 +58,7 @@ export default function ModelPicker({
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const compact = useIsCompact();
 
   // Until the store has heard from the server, the pill shows what this screen
   // was rendered with — so the first paint matches the server's.
@@ -64,14 +67,17 @@ export default function ModelPicker({
   useEffect(() => {
     if (!open) return;
     void modelStore.load();
-    searchRef.current?.focus();
+    // Taking focus opens the software keyboard, which would cover the list the
+    // sheet just opened to show. On a pointer it saves a click.
+    if (!compact) searchRef.current?.focus();
 
+    if (compact) return;
     function onPointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
+  }, [open, compact]);
 
   const needle = query.trim().toLowerCase();
 
@@ -179,7 +185,155 @@ export default function ModelPicker({
   }
 
   const empty = state.status === "ready" && state.catalogs.length === 0;
-  let index = -1;
+
+  /**
+   * One list, two containers. A 19rem panel pinned beside its trigger is most
+   * of a phone's width and lands wherever the composer happens to sit, so
+   * below the desktop breakpoint the same list arrives from the bottom
+   * instead. The rows are the same rows; only the room differs.
+   */
+  function panel(inSheet: boolean) {
+    let index = -1;
+    return (
+      <>
+        <input
+          ref={searchRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter models…"
+          aria-label="Filter models"
+          className={
+            inSheet
+              ? "input mb-2 font-data"
+              : "input h-8 py-0 font-data lg:text-[0.74rem]"
+          }
+        />
+
+        <div
+          ref={listRef}
+          className={
+            inSheet ? "flex flex-col" : "flux-scroll mt-1.5 max-h-[17rem] overflow-y-auto"
+          }
+        >
+          {state.status === "loading" && (
+            <p className="px-2 py-3 font-data text-[0.68rem] text-ink-faint">
+              loading…
+            </p>
+          )}
+
+          {state.status === "error" && (
+            <p className="px-2 py-3 text-[0.76rem] text-blush">{state.error}</p>
+          )}
+
+          {empty && (
+            <div className="px-2 py-3">
+              <p className="text-[0.78rem] leading-relaxed text-ink-soft">
+                No providers yet.
+              </p>
+              <Link
+                href="/settings"
+                className="mt-1 inline-block text-[0.78rem] text-iris underline underline-offset-2"
+              >
+                Add one in Settings
+              </Link>
+            </div>
+          )}
+
+          {sections.map((section) => (
+            <section key={section.key} className="mb-1 last:mb-0">
+              <div className="flex items-baseline gap-1.5 px-2 pb-0.5 pt-1.5">
+                {section.tone && (
+                  <span
+                    aria-hidden="true"
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: `var(--${section.tone})` }}
+                  />
+                )}
+                <h3 className="font-data text-[0.62rem] uppercase tracking-[0.14em] text-ink-faint">
+                  {section.title}
+                </h3>
+                {section.note && (
+                  <span className="min-w-0 flex-1 truncate text-[0.66rem] text-ink-faint">
+                    {section.note}
+                  </span>
+                )}
+              </div>
+
+              {section.rows.map((row) => {
+                index += 1;
+                const rowIndex = index;
+                const chosen = sameRef(selection, row.ref);
+                const favorite = state.favorites.some((f) => sameRef(f, row.ref));
+                return (
+                  <div
+                    key={row.key}
+                    data-row={rowIndex}
+                    className={`group flex items-center gap-1 rounded-lg pr-1 ${
+                      cursor === rowIndex && !inSheet ? "bg-surface-2" : ""
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={chosen}
+                      onMouseEnter={() => setCursor(rowIndex)}
+                      onClick={() => pick(row)}
+                      className={`min-w-0 flex-1 truncate rounded-lg px-2 text-left font-data leading-[1.4] transition-colors hover:bg-surface-2 ${
+                        inSheet ? "tap py-2 text-[0.9rem]" : "py-1.5 text-[0.75rem]"
+                      } ${chosen ? "text-iris" : "text-ink"}`}
+                    >
+                      {row.ref.model}
+                      {section.key === "favorites" && (
+                        <span className="ml-1.5 font-ui text-[0.66rem] text-ink-faint">
+                          {row.label}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void modelStore.toggleFavorite(row.ref)}
+                      aria-pressed={favorite}
+                      aria-label={
+                        favorite
+                          ? `Remove ${row.ref.model} from favourites`
+                          : `Add ${row.ref.model} to favourites`
+                      }
+                      title={favorite ? "Remove from favourites" : "Favourite"}
+                      /* There is no hover on a touch screen, so a control that
+                         only appears on hover is a control that does not
+                         exist. Below `lg` it is simply there. */
+                      className={`tap shrink-0 rounded-md p-1 transition-colors max-lg:grid max-lg:place-items-center max-lg:opacity-100 ${
+                        favorite
+                          ? "text-amber"
+                          : "text-ink-faint opacity-0 hover:text-amber focus-visible:opacity-100 group-hover:opacity-100"
+                      } ${cursor === rowIndex && !inSheet ? "opacity-100" : ""}`}
+                    >
+                      <Star filled={favorite} />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {section.rows.length === 0 && section.providerId && (
+                <Link
+                  href="/settings"
+                  className="block px-2 py-1 font-data text-[0.66rem] text-ink-faint transition-colors hover:text-iris"
+                >
+                  {needle ? "nothing matches here" : "pick its models in Settings →"}
+                </Link>
+              )}
+            </section>
+          ))}
+        </div>
+
+        {state.error && state.status === "ready" && (
+          <p role="alert" className="px-2 pb-1 pt-1.5 text-[0.7rem] text-blush">
+            {state.error}
+          </p>
+        )}
+      </>
+    );
+  }
 
   return (
     <div ref={rootRef} className="relative">
@@ -187,13 +341,13 @@ export default function ModelPicker({
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        aria-haspopup="menu"
-        aria-controls={open ? panelId : undefined}
+        aria-haspopup={compact ? "dialog" : "menu"}
+        aria-controls={open && !compact ? panelId : undefined}
         aria-label={label}
         title={
           selection ? `${selection.label} · ${selection.model}` : "Choose a model"
         }
-        className={`group flex h-8 max-w-[16rem] items-center gap-1.5 rounded-full border px-2.5 leading-none transition-colors ${
+        className={`group flex h-8 max-w-[16rem] items-center gap-1.5 rounded-full border px-2.5 leading-none transition-colors max-lg:h-11 max-lg:px-3.5 ${
           open
             ? "border-iris bg-iris-soft text-iris"
             : "border-line-strong text-ink-soft hover:border-iris hover:text-ink"
@@ -218,7 +372,7 @@ export default function ModelPicker({
         <Caret open={open} className="opacity-60" />
       </button>
 
-      {open && (
+      {open && !compact && (
         <div
           id={panelId}
           role="menu"
@@ -228,134 +382,13 @@ export default function ModelPicker({
           } ${placement === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}
           style={{ boxShadow: "0 18px 40px -18px rgb(0 0 0 / 0.45)" }}
         >
-          <input
-            ref={searchRef}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter models…"
-            aria-label="Filter models"
-            className="input h-8 py-0 font-data text-[0.74rem]"
-          />
-
-          <div
-            ref={listRef}
-            className="flux-scroll mt-1.5 max-h-[17rem] overflow-y-auto"
-          >
-            {state.status === "loading" && (
-              <p className="px-2 py-3 font-data text-[0.68rem] text-ink-faint">
-                loading…
-              </p>
-            )}
-
-            {state.status === "error" && (
-              <p className="px-2 py-3 text-[0.76rem] text-blush">{state.error}</p>
-            )}
-
-            {empty && (
-              <div className="px-2 py-3">
-                <p className="text-[0.78rem] leading-relaxed text-ink-soft">
-                  No providers yet.
-                </p>
-                <Link
-                  href="/settings"
-                  className="mt-1 inline-block text-[0.78rem] text-iris underline underline-offset-2"
-                >
-                  Add one in Settings
-                </Link>
-              </div>
-            )}
-
-            {sections.map((section) => (
-              <section key={section.key} className="mb-1 last:mb-0">
-                <div className="flex items-baseline gap-1.5 px-2 pb-0.5 pt-1.5">
-                  {section.tone && (
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: `var(--${section.tone})` }}
-                    />
-                  )}
-                  <h3 className="font-data text-[0.62rem] uppercase tracking-[0.14em] text-ink-faint">
-                    {section.title}
-                  </h3>
-                  {section.note && (
-                    <span className="min-w-0 flex-1 truncate text-[0.66rem] text-ink-faint">
-                      {section.note}
-                    </span>
-                  )}
-                </div>
-
-                {section.rows.map((row) => {
-                  index += 1;
-                  const rowIndex = index;
-                  const chosen = sameRef(selection, row.ref);
-                  const favorite = state.favorites.some((f) => sameRef(f, row.ref));
-                  return (
-                    <div
-                      key={row.key}
-                      data-row={rowIndex}
-                      className={`group flex items-center gap-1 rounded-lg pr-1 ${
-                        cursor === rowIndex ? "bg-surface-2" : ""
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={chosen}
-                        onMouseEnter={() => setCursor(rowIndex)}
-                        onClick={() => pick(row)}
-                        className={`min-w-0 flex-1 truncate rounded-lg px-2 py-1.5 text-left font-data text-[0.75rem] leading-[1.4] transition-colors hover:bg-surface-2 ${
-                          chosen ? "text-iris" : "text-ink"
-                        }`}
-                      >
-                        {row.ref.model}
-                        {section.key === "favorites" && (
-                          <span className="ml-1.5 font-ui text-[0.66rem] text-ink-faint">
-                            {row.label}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void modelStore.toggleFavorite(row.ref)}
-                        aria-pressed={favorite}
-                        aria-label={
-                          favorite
-                            ? `Remove ${row.ref.model} from favourites`
-                            : `Add ${row.ref.model} to favourites`
-                        }
-                        title={favorite ? "Remove from favourites" : "Favourite"}
-                        className={`shrink-0 rounded-md p-1 transition-colors ${
-                          favorite
-                            ? "text-amber"
-                            : "text-ink-faint opacity-0 hover:text-amber focus-visible:opacity-100 group-hover:opacity-100"
-                        } ${cursor === rowIndex ? "opacity-100" : ""}`}
-                      >
-                        <Star filled={favorite} />
-                      </button>
-                    </div>
-                  );
-                })}
-
-                {section.rows.length === 0 && section.providerId && (
-                  <Link
-                    href="/settings"
-                    className="block px-2 py-1 font-data text-[0.66rem] text-ink-faint transition-colors hover:text-iris"
-                  >
-                    {needle ? "nothing matches here" : "pick its models in Settings →"}
-                  </Link>
-                )}
-              </section>
-            ))}
-          </div>
-
-          {state.error && state.status === "ready" && (
-            <p role="alert" className="px-2 pb-1 pt-1.5 text-[0.7rem] text-blush">
-              {state.error}
-            </p>
-          )}
+          {panel(false)}
         </div>
       )}
+
+      <Sheet open={open && compact} onClose={() => setOpen(false)} title={label}>
+        {panel(true)}
+      </Sheet>
     </div>
   );
 }

@@ -25,3 +25,17 @@ export async function setStatus(
     .collection("flux_thoughts")
     .update<ThoughtRecord>(id, statusPatch(status));
 }
+
+export async function setThoughtTags(
+  id: string,
+  tags: string[]
+): Promise<ThoughtRecord> {
+  return pb().collection("flux_thoughts").update<ThoughtRecord>(id, {
+    tags,
+    edited_at: new Date().toISOString(),
+  });
+}
+
+export async function deleteThought(id: string): Promise<boolean> {
+  return pb().collection("flux_thoughts").delete(id);
+}
