@@ -12,6 +12,10 @@ import { VERSION } from "@/lib/VERSION";
 const DRAFT_KEY = "flux-draft";
 const MAX_HEIGHT = 340;
 
+type FailedRequest =
+  | { kind: "save"; text: string }
+  | { kind: "sort"; dumpId: string; text: string };
+
 export default function CaptureScreen({
   userId,
   hasKey,
@@ -31,6 +35,8 @@ export default function CaptureScreen({
   const [flash, setFlash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [needsKey, setNeedsKey] = useState(false);
+  const [failedRequest, setFailedRequest] = useState<FailedRequest | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
 
@@ -59,7 +65,12 @@ export default function CaptureScreen({
   }, [text]);
 
   /** Runs in the background — capture must never wait on a model. */
-  function sortInBackground(dumpId: string) {
+  function sortInBackground(
+    dumpId: string,
+    capturedText: string,
+    isRetry = false
+  ) {
+    if (isRetry) setRetrying(true);
     sortingStore.start(dumpId);
     fetch(`/api/dumps/${dumpId}/process`, { method: "POST" })
       .then(async (res) => {
@@ -67,15 +78,31 @@ export default function CaptureScreen({
         if (!res.ok) {
           setNeedsKey(Boolean(data.needs_key));
           setError(data.error ?? "Sorting failed");
+          setText((current) => current || capturedText);
+          setFailedRequest({ kind: "sort", dumpId, text: capturedText });
+          areaRef.current?.focus();
           return;
+        }
+        if (isRetry) {
+          setText((current) => (current === capturedText ? "" : current));
+          setError(null);
+          setNeedsKey(false);
+          setFailedRequest(null);
         }
         // The week panel is server-rendered from the thoughts just created.
         router.refresh();
       })
       .catch((err: unknown) => {
+        setNeedsKey(false);
         setError(err instanceof Error ? err.message : "Sorting failed");
+        setText((current) => current || capturedText);
+        setFailedRequest({ kind: "sort", dumpId, text: capturedText });
+        areaRef.current?.focus();
       })
-      .finally(() => sortingStore.finish(dumpId));
+      .finally(() => {
+        sortingStore.finish(dumpId);
+        if (isRetry) setRetrying(false);
+      });
   }
 
   async function save() {
@@ -87,6 +114,8 @@ export default function CaptureScreen({
 
     setText("");
     setError(null);
+    setNeedsKey(false);
+    setFailedRequest(null);
     setSaving(true);
     areaRef.current?.focus();
 
@@ -102,15 +131,25 @@ export default function CaptureScreen({
 
       setFlash(hasKey ? "Saved — sorting it now" : "Saved");
       window.setTimeout(() => setFlash(null), 2600);
-      if (hasKey) sortInBackground(saved.id);
+      if (hasKey) sortInBackground(saved.id, body);
     } catch (err) {
       setText((current) => current || body);
+      setFailedRequest({ kind: "save", text: body });
       setError(
         err instanceof Error ? `Couldn't save that. ${err.message}` : "Couldn't save that."
       );
     } finally {
       setSaving(false);
     }
+  }
+
+  function retryFailedRequest() {
+    if (!failedRequest || saving || retrying) return;
+    if (failedRequest.kind === "sort") {
+      sortInBackground(failedRequest.dumpId, failedRequest.text, true);
+      return;
+    }
+    void save();
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -181,20 +220,32 @@ export default function CaptureScreen({
             )}
 
             {error && (
-              <p
+              <div
                 role="alert"
-                className="rounded-xl bg-blush-soft px-3.5 py-2.5 text-center text-[0.78rem] text-blush"
+                className="flex items-center justify-between gap-3 rounded-xl bg-blush-soft px-3.5 py-2.5 text-[0.78rem] text-blush"
               >
-                {error}
-                {needsKey && (
-                  <>
-                    {" "}
-                    <Link href="/settings" className="underline underline-offset-2">
-                      Open settings
-                    </Link>
-                  </>
+                <span>
+                  {error}
+                  {needsKey && (
+                    <>
+                      {" "}
+                      <Link href="/settings" className="underline underline-offset-2">
+                        Open settings
+                      </Link>
+                    </>
+                  )}
+                </span>
+                {failedRequest && (
+                  <button
+                    type="button"
+                    onClick={retryFailedRequest}
+                    disabled={saving || retrying}
+                    className="shrink-0 rounded-full border border-current px-3 py-1 font-medium transition-opacity hover:opacity-75 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {saving || retrying ? "Retrying…" : "Retry"}
+                  </button>
                 )}
-              </p>
+              </div>
             )}
           </div>
 
