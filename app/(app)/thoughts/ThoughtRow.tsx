@@ -28,6 +28,12 @@ const TONE: Record<string, string> = {
   none: "ink-faint",
 };
 
+/**
+ * Hovering shows the answer rather than announcing it: an open thought fills
+ * in a ghost of the tick it is about to get, a done one lets its tick fade
+ * towards gone. Nothing grows, moves, or appears beside it — the circle is
+ * already where the eye is, so the whole hint fits inside it.
+ */
 export function StatusDot({
   thought,
   onStatus,
@@ -44,31 +50,42 @@ export function StatusDot({
       aria-pressed={done}
       aria-label={done ? `Reopen ${thought.title}` : `Mark ${thought.title} done`}
       title={done ? "Reopen" : archived ? "Bring back" : "Mark done"}
-      className="grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors"
-      style={{
-        borderColor: done ? "var(--mint)" : "var(--line-strong)",
-        background: done ? "var(--mint-soft)" : "transparent",
-      }}
+      className={`group/dot grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors ${
+        done
+          ? "border-mint bg-mint-soft hover:bg-transparent"
+          : archived
+            ? "border-line-strong hover:border-sage"
+            : "border-line-strong hover:border-mint"
+      }`}
     >
-      {done ? (
-        <svg viewBox="0 0 12 12" className="h-3 w-3" aria-hidden="true">
-          <path
-            d="M2.5 6.2 4.8 8.5 9.5 3.8"
-            fill="none"
-            stroke="var(--mint)"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      ) : archived ? (
+      {archived ? (
         <span
           aria-hidden="true"
-          className="h-1.5 w-1.5 rounded-full"
-          style={{ background: "var(--sage)" }}
+          className="h-1.5 w-1.5 rounded-full bg-sage transition-opacity group-hover/dot:opacity-45"
         />
-      ) : null}
+      ) : (
+        <Tick
+          className={`text-mint transition-opacity ${
+            done ? "group-hover/dot:opacity-40" : "opacity-0 group-hover/dot:opacity-45"
+          }`}
+        />
+      )}
     </button>
+  );
+}
+
+function Tick({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 12 12" className={`h-3 w-3 ${className}`} aria-hidden="true">
+      <path
+        d="M2.5 6.2 4.8 8.5 9.5 3.8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

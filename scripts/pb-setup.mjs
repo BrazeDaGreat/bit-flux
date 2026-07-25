@@ -170,6 +170,22 @@ const definitions = [
   }),
 
   () => ({
+    name: "flux_people",
+    type: "base",
+    ...OWNER_RULES,
+    fields: [
+      relation("user", ids.users, { required: true, cascadeDelete: true }),
+      text("name", { required: true, max: 100 }),
+      text("note", { max: 2000 }),
+      select("origin", ["user", "ai_seen"]),
+      ...timestamps(),
+    ],
+    indexes: [
+      "CREATE UNIQUE INDEX `idx_flux_people_user_name` ON `flux_people` (`user`, `name`)",
+    ],
+  }),
+
+  () => ({
     name: "flux_thoughts",
     type: "base",
     ...OWNER_RULES,

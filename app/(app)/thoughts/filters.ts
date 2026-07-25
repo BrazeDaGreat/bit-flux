@@ -15,6 +15,11 @@ export type ViewMode = "tags" | "list" | "timeline" | "calendar";
  *  share a list. */
 export type Bucket = "open" | "done" | "archived";
 
+/** The fourth tab is not a status but a job: the thoughts the AI wasn't sure
+ *  about, waiting on a decision. It sits apart from the three piles for that
+ *  reason. */
+export type Pane = Bucket | "review";
+
 export type WhenKey = "overdue" | "today" | "week" | "none";
 
 export interface Filters {

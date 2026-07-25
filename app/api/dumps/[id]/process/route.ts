@@ -13,6 +13,7 @@ import { extractThoughts } from "@/lib/ai/extract";
 import type {
   DumpRecord,
   ModelRef,
+  PersonRecord,
   TagRecord,
   ThoughtRecord,
 } from "@/lib/types";
@@ -73,8 +74,16 @@ export async function POST(
       sort: "-usage_count",
     });
 
+    // Who the user has described. Missing collection is not fatal — people are
+    // context, not a requirement.
+    const people = await client
+      .collection("flux_people")
+      .getFullList<PersonRecord>({ sort: "name" })
+      .catch(() => [] as PersonRecord[]);
+
     const result = await extractThoughts(config, dump.text, {
       tags: tags.map((t) => ({ name: t.name, description: t.description })),
+      people: people.map((p) => ({ name: p.name, note: p.note })),
       capturedAt: new Date((dump.captured_at || dump.created).replace(" ", "T")),
       timeZone: dump.capture_tz || "UTC",
       autoReminders: Boolean(settings?.auto_reminders),

@@ -19,10 +19,15 @@ export default function ReviewQueue({
   initialItems,
   settingsId,
   corrections,
+  onResolved,
+  onLeave,
 }: {
   initialItems: ThoughtRecord[];
   settingsId: string | null;
   corrections: string[];
+  /** Lets the tab count drop the moment a decision is made. */
+  onResolved: (id: string) => void;
+  onLeave: () => void;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -40,6 +45,7 @@ export default function ReviewQueue({
       return next;
     });
     setMerging((prev) => prev.filter((s) => s !== id));
+    onResolved(id);
   }
 
   /**
@@ -102,24 +108,30 @@ export default function ReviewQueue({
 
   if (items.length === 0) {
     return (
-      <div className="mt-6 rounded-2xl border border-dashed border-line-strong px-5 py-10 text-center">
+      <div className="rounded-2xl border border-dashed border-line-strong px-5 py-10 text-center">
         <p className="font-hand text-[1.05rem] text-ink">Nothing to check.</p>
         <p className="mt-1 text-[0.8rem] text-ink-soft">
           Thoughts land here when the AI wasn&apos;t confident about the split,
           tags, or a date.
         </p>
-        <Link
-          href="/thoughts"
-          className="mt-3 inline-block rounded-full border border-line-strong px-4 py-1.5 text-[0.8rem] text-ink-soft hover:border-iris hover:text-ink"
+        <button
+          type="button"
+          onClick={onLeave}
+          className="mt-3 rounded-full border border-line-strong px-4 py-1.5 text-[0.8rem] text-ink-soft hover:border-iris hover:text-ink"
         >
-          See everything
-        </Link>
+          Back to open
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="mt-5 flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
+      <p className="max-w-[52ch] text-[0.8rem] leading-relaxed text-ink-soft">
+        The AI wasn&apos;t sure about these. What you decide here is what it
+        learns from.
+      </p>
+
       {merging.length === 2 && (
         <div className="flex items-center gap-3 rounded-xl bg-iris-soft px-3.5 py-2.5">
           <span className="text-[0.8rem] text-iris">Two picked.</span>

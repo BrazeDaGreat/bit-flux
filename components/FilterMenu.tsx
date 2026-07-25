@@ -44,11 +44,13 @@ export default function FilterMenu({
   onPick,
   label = "Filter",
   align = "right",
+  placement = "down",
 }: {
   groups: FilterGroup[];
   onPick: (groupKey: string, value: string | null) => void;
   label?: string;
   align?: "left" | "right";
+  placement?: "up" | "down";
 }) {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<string | null>(null);
@@ -108,9 +110,9 @@ export default function FilterMenu({
         <div
           id={menuId}
           role="menu"
-          className={`absolute z-50 mt-1.5 max-h-72 w-56 overflow-y-auto rounded-xl border border-line bg-surface p-1 ${
+          className={`absolute z-50 max-h-72 w-56 overflow-y-auto rounded-xl border border-line bg-surface p-1 ${
             align === "right" ? "right-0" : "left-0"
-          }`}
+          } ${placement === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5"}`}
           style={{ boxShadow: "0 10px 30px -12px rgb(0 0 0 / 0.35)" }}
         >
           {current ? (

@@ -9,11 +9,12 @@ import type { UserRecord } from "@/lib/types";
 import ThemeModeToggle from "./ThemeModeToggle";
 import ThemePicker from "./ThemePicker";
 
+/** Four places. Review lives inside Thoughts now, and people are managed
+ *  beside the tags they sit next to on a thought. */
 const NAV = [
   { href: "/", label: "Capture" },
   { href: "/thoughts", label: "Thoughts" },
-  { href: "/review", label: "Review" },
-  { href: "/tags", label: "Tags" },
+  { href: "/tags", label: "Tags & people" },
   { href: "/ask", label: "Ask" },
 ];
 

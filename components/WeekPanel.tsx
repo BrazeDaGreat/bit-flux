@@ -55,7 +55,7 @@ export default function WeekPanel({ data }: { data: DashboardData }) {
 
       {data.needsReview > 0 && (
         <Link
-          href="/review"
+          href="/thoughts?pane=review"
           className="mt-3 flex items-center gap-1.5 border-t border-line pt-2.5 font-data text-[0.66rem] text-amber hover:underline"
         >
           {data.needsReview} to check →

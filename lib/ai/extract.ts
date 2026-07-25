@@ -1,11 +1,13 @@
 import { chat, type ProviderConfig } from "./provider";
 import type { ExtractedThought, ExtractionResult } from "./types";
-import type { DatePrecision, TagRecord } from "../types";
+import type { DatePrecision, PersonRecord, TagRecord } from "../types";
 
 const PRECISIONS: DatePrecision[] = ["exact", "day", "week", "month", "vague"];
 
 export interface ExtractionContext {
   tags: Pick<TagRecord, "name" | "description">[];
+  /** Known people, so one Sam doesn't become two spellings. */
+  people: Pick<PersonRecord, "name" | "note">[];
   /** Local time where the dump was written, so "tonight" resolves correctly. */
   capturedAt: Date;
   timeZone: string;
@@ -40,12 +42,21 @@ export function buildSystemPrompt(context: ExtractionContext): string {
         .join("\n")
     : "(none yet)";
 
+  const peopleList = context.people.length
+    ? context.people
+        .map((p) => `- ${p.name}${p.note ? `: ${p.note}` : ""}`)
+        .join("\n")
+    : "(none yet)";
+
   return `You sort a person's raw brain dump into separate thoughts. You are a librarian, not an author.
 
 CAPTURE TIME: ${localStamp(context.capturedAt, context.timeZone)} (timezone ${context.timeZone})
 
 THE USER'S EXISTING TAGS — match against these before inventing anything; the descriptions tell you what each one means to this person:
 ${tagList}
+
+PEOPLE THE USER ALREADY WRITES ABOUT — when a mention is clearly one of them, use this exact spelling so they stay one person:
+${peopleList}
 
 RULES
 1. Split only genuinely separate thoughts. One idea stays one thought, however long. Do not split a single thought into steps.
@@ -106,6 +117,9 @@ function normalise(
   if (!body && !title) return null;
 
   const knownTags = new Set(context.tags.map((t) => t.name.toLowerCase()));
+  const knownPeople = new Map(
+    context.people.map((p) => [p.name.toLowerCase(), p.name])
+  );
   const tags = Array.isArray(raw.tags)
     ? raw.tags
         .map(asString)
@@ -138,7 +152,14 @@ function normalise(
     body: body || title,
     tags,
     suggested_tags: suggested,
-    people: Array.isArray(raw.people) ? raw.people.map(asString).filter(Boolean) : [],
+    // Snapped to the spelling already on file, so "priya" and "Priya" stay one
+    // person in the roster and in filters.
+    people: Array.isArray(raw.people)
+      ? raw.people
+          .map(asString)
+          .filter(Boolean)
+          .map((name) => knownPeople.get(name.toLowerCase()) ?? name)
+      : [],
     action_date: asDate(raw.action_date),
     deadline: asDate(raw.deadline),
     // The prompt already restricts this to explicit requests unless the user

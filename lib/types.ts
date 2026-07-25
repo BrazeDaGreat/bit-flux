@@ -60,6 +60,19 @@ export interface TagRecord extends RecordModel {
   usage_count: number;
 }
 
+/**
+ * Someone the user keeps mentioning. Names already live on each thought, so a
+ * record here exists only to hold what a name means — which is what stops the
+ * model treating one Sam as two.
+ */
+export interface PersonRecord extends RecordModel {
+  user: string;
+  name: string;
+  /** Who they are to the user. Fed to the model as extraction context. */
+  note: string;
+  origin: "user" | "ai_seen";
+}
+
 export type ProviderKind =
   | "openai"
   | "groq"

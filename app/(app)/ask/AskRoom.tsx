@@ -448,6 +448,14 @@ export default function AskRoom({
 
         <div className="border-t border-line bg-surface px-5 pb-4 pt-3 sm:px-8">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-2">
+            {scopeCount > 0 && (
+              <FilterChips
+                groups={scopeGroups}
+                onRemove={(key) => setScopeKey(key, null)}
+                onClear={() => setScope({})}
+              />
+            )}
+
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -460,6 +468,7 @@ export default function AskRoom({
                 onPick={setScopeKey}
                 label="Narrow what gets searched"
                 align="left"
+                placement="up"
               />
               <div className="self-center">
                 <ModelPicker
@@ -491,14 +500,6 @@ export default function AskRoom({
                 Ask
               </button>
             </form>
-
-            {scopeCount > 0 && (
-              <FilterChips
-                groups={scopeGroups}
-                onRemove={(key) => setScopeKey(key, null)}
-                onClear={() => setScope({})}
-              />
-            )}
           </div>
         </div>
       </div>
