@@ -3,6 +3,8 @@
 import Link from "next/link";
 
 import FilterMenu, { FilterChips } from "@/components/FilterMenu";
+import MentionField from "@/components/MentionField";
+import MentionText from "@/components/MentionText";
 import ModelPicker from "@/components/ModelPicker";
 import { Answer, EXAMPLES, PanelIcon, type AskShellProps } from "./ask-shell";
 
@@ -96,7 +98,7 @@ export default function AskRoomDesktop({
                     key={index}
                     className="max-w-[85%] self-end rounded-2xl rounded-br-md bg-surface-3 px-4 py-2.5 text-[0.9rem] leading-relaxed text-ink"
                   >
-                    {turn.content}
+                    <MentionText text={turn.content} />
                   </p>
                 ) : (
                   <div key={index} className="flex flex-col gap-3">
@@ -199,19 +201,22 @@ export default function AskRoomDesktop({
                 label="Model answering"
               />
             </div>
-            <textarea
-              ref={areaRef}
+            <MentionField
+              fieldRef={areaRef}
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={setQuestion}
               onKeyDown={(e) => {
+                // The picker takes Enter first when it is up; it says so by
+                // having already handled the key.
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   ask(question);
                 }
               }}
-              rows={1}
-              placeholder="Ask about anything you've written…"
-              className="bare-field flux-scroll min-h-9 flex-1 resize-none self-center bg-transparent px-1 py-2 font-hand text-[1rem] leading-[1.4] text-ink placeholder:text-ink-faint lg:text-[0.98rem]"
+              ariaLabel="Your question"
+              placeholder="Ask about anything you've written… (# to name a thought)"
+              wrapperClassName="min-w-0 flex-1 self-center"
+              className="flux-scroll max-h-40 min-h-9 overflow-y-auto bg-transparent px-1 py-2 font-hand text-[1rem] leading-[1.4] text-ink lg:text-[0.98rem]"
             />
             <button
               type="submit"

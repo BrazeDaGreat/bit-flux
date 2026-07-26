@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -93,7 +92,7 @@ export default function AskRoom({
   const [needsKey, setNeedsKey] = useState(false);
 
   const phone = useIsPhone();
-  const areas = useRef<HTMLTextAreaElement[]>([]);
+  const areas = useRef<HTMLElement[]>([]);
   const ends = useRef<HTMLDivElement[]>([]);
 
   /** A `display: none` element has no offset parent, which is exactly the
@@ -111,7 +110,7 @@ export default function AskRoom({
     []
   );
 
-  const areaRef = useCallback((el: HTMLTextAreaElement | null) => {
+  const areaRef = useCallback((el: HTMLElement | null) => {
     areas.current = areas.current.filter((known) => known.isConnected);
     if (el && !areas.current.includes(el)) areas.current.push(el);
   }, []);
@@ -168,13 +167,6 @@ export default function AskRoom({
       setError("Couldn't delete that chat");
     }
   }
-
-  useLayoutEffect(() => {
-    const el = liveArea();
-    if (!el) return;
-    el.style.height = "0px";
-    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-  }, [question, liveArea]);
 
   useEffect(() => {
     if (turns.length) liveEnd()?.scrollIntoView({ behavior: "smooth" });

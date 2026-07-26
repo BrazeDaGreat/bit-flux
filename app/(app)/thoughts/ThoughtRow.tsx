@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { Caret } from "@/components/Chips";
+import MentionText from "@/components/MentionText";
 import { toDate } from "@/lib/time";
 import type { TagRecord, ThoughtRecord } from "@/lib/types";
 import { dueValue, whenOf } from "./filters";
@@ -249,8 +250,8 @@ export function ThoughtDetail({
       />
 
       {thought.body && thought.body !== thought.title && (
-        <p className="font-hand text-[0.95rem] leading-[1.55] text-ink">
-          {thought.body}
+        <p className="whitespace-pre-wrap font-hand text-[0.95rem] leading-[1.55] text-ink">
+          <MentionText text={thought.body} />
         </p>
       )}
 

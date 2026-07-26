@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 
+import MentionField from "@/components/MentionField";
 import ModelPicker from "@/components/ModelPicker";
+import { plainMentions } from "@/lib/mentions";
 import { VERSION } from "@/lib/VERSION";
 import type { CaptureShellProps } from "./capture-shell";
 
@@ -33,6 +35,9 @@ export default function CaptureScreenDesktop({
   selection,
   weekPanel,
 }: CaptureShellProps) {
+  // A mention is one word on screen however long its stored form is.
+  const typed = plainMentions(text).trim().length;
+
   return (
     <div className="relative hidden min-h-full flex-col px-5 py-6 sm:px-8 lg:flex">
       {/* Peripheral, not part of the main column. */}
@@ -48,15 +53,15 @@ export default function CaptureScreenDesktop({
           </p>
 
           <div className="mt-5 rounded-2xl border border-line-strong bg-surface-2 p-1 transition-colors focus-within:border-iris">
-            <textarea
-              ref={areaRef}
+            <MentionField
+              fieldRef={areaRef}
               suppressHydrationWarning
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={setText}
               onKeyDown={onKeyDown}
-              placeholder="call the dentist back, maybe voice notes for capture, ship Aris memory by friday…"
-              className="bare-field flux-scroll block w-full resize-none bg-transparent px-4 py-3.5 font-hand text-[1.05rem] leading-[1.6] text-ink placeholder:text-ink-faint"
-              style={{ minHeight: "7rem" }}
+              ariaLabel="What's on your mind"
+              placeholder="call the dentist back, maybe voice notes for capture, ship Aris memory by friday… (# to link a thought)"
+              className="flux-scroll block max-h-[21rem] min-h-[7rem] w-full overflow-y-auto bg-transparent px-4 py-3.5 font-hand text-[1.05rem] leading-[1.6] text-ink"
             />
             {/* Which model sorts this sits with the box it will sort, not on
                 another screen — and it stays put for next time. */}
@@ -65,7 +70,7 @@ export default function CaptureScreenDesktop({
                 <ModelPicker initial={selection} align="left" placement="up" />
               )}
               <span className="ml-auto shrink-0 font-data text-[0.68rem] text-ink-faint">
-                {text.trim() ? `${text.trim().length} characters` : "⌘↵ to save"}
+                {typed ? `${typed} characters` : "⌘↵ to save"}
               </span>
               <button
                 type="button"

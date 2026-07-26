@@ -9,11 +9,21 @@ import {
 } from "@/lib/providers-server";
 import { askQuestion } from "@/lib/ai/ask";
 import { ProviderError } from "@/lib/ai/provider";
-import { searchThoughts } from "@/lib/search";
-import type { AskScope, ChatRecord, DumpRecord, ModelRef } from "@/lib/types";
+import { mentionIds, numberMentions, plainMentions } from "@/lib/mentions";
+import { searchThoughts, type SearchHit } from "@/lib/search";
+import type {
+  AskScope,
+  ChatRecord,
+  DumpRecord,
+  ModelRef,
+  ThoughtRecord,
+} from "@/lib/types";
 
 /** Enough context to answer well without burning the whole window. */
 const RETRIEVE = 14;
+
+/** A question can only point at so many thoughts before it is a report. */
+const MAX_NAMED = 6;
 
 export async function POST(request: Request) {
   const user = await currentUser();
@@ -55,15 +65,51 @@ export async function POST(request: Request) {
     throw err;
   }
 
+  // `#[Title](id)` is a pointer, not a phrase. Search never sees the token —
+  // it sees the words the person read on screen.
+  const asked = plainMentions(question);
+  const named = mentionIds(question).slice(0, MAX_NAMED);
+
   try {
-    const search = await searchThoughts(client, question, {
+    const search = await searchThoughts(client, asked, {
       embed: toEmbedConfig(settings),
       scope: body.scope,
       limit: RETRIEVE,
     });
 
+    /**
+     * A named thought is in the context whatever retrieval thought of it, and
+     * it is in it first — including one that has since been archived, because
+     * pointing at something is a stronger statement than any filter. Scope is
+     * deliberately not applied either: the person named this one.
+     */
+    const pinned: SearchHit[] = [];
+    if (named.length) {
+      const filter = named.map((id) => `id = "${id}"`).join(" || ");
+      const records = await client
+        .collection("flux_thoughts")
+        .getFullList<ThoughtRecord>({ filter })
+        .catch(() => []);
+      const byId = new Map(records.map((record) => [record.id, record]));
+      for (const id of named) {
+        const thought = byId.get(id);
+        if (thought) pinned.push({ thought, score: Infinity, via: "named" });
+      }
+    }
+
+    const seen = new Set(pinned.map((hit) => hit.thought.id));
+    const hits = [
+      ...pinned,
+      ...search.hits.filter((hit) => !seen.has(hit.thought.id)),
+    ].slice(0, RETRIEVE + pinned.length);
+
+    // The numbers the model will cite are the numbers in this list, so a
+    // mention in the question can carry its own: "similar to #A nice dream [1]".
+    const numbers = new Map(hits.map((hit, index) => [hit.thought.id, index + 1]));
+    const forModel = numberMentions(question, (id) => numbers.get(id));
+
     // Pull the source dumps too — the original wording is often the answer.
-    const dumpIds = [...new Set(search.hits.map((hit) => hit.thought.dump))];
+    const dumpIds = [...new Set(hits.map((hit) => hit.thought.dump))];
     const dumps = new Map<string, DumpRecord>();
     if (dumpIds.length) {
       const filter = dumpIds.map((id) => `id = "${id}"`).join(" || ");
@@ -74,8 +120,8 @@ export async function POST(request: Request) {
       for (const dump of records) dumps.set(dump.id, dump);
     }
 
-    const { answer, citations } = await askQuestion(config, question, {
-      hits: search.hits,
+    const { answer, citations } = await askQuestion(config, forModel, {
+      hits,
       dumps,
       now: new Date(),
     });
@@ -85,7 +131,7 @@ export async function POST(request: Request) {
     if (!chatId) {
       const chat = await client.collection("flux_chats").create<ChatRecord>({
         user: user.id,
-        title: question.slice(0, 80),
+        title: asked.slice(0, 80),
         scope: body.scope ?? null,
       });
       chatId = chat.id;
@@ -113,7 +159,7 @@ export async function POST(request: Request) {
       citations,
       mode: search.mode,
       note: search.note,
-      used: search.hits.length,
+      used: hits.length,
     });
   } catch (err) {
     const message =

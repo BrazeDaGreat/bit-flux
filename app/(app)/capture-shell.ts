@@ -12,10 +12,10 @@ export type FailedRequest =
 
 export interface CaptureShellProps {
   /** Callback ref: both shells mount, only the visible one is written to. */
-  areaRef: (el: HTMLTextAreaElement | null) => void;
+  areaRef: (el: HTMLElement | null) => void;
   text: string;
   setText: (value: string) => void;
-  onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void;
   save: () => void;
   retryFailedRequest: () => void;
   saving: boolean;

@@ -72,7 +72,8 @@ RULES
       : "only when the user explicitly asks to be reminded. Otherwise leave it null."
   }
 6. tags: only names from the existing list. If a recurring topic has no tag, put it in suggested_tags with a one-line description of when it should apply. Suggested tags are proposals; do not treat them as applied.
-7. confidence 0-1. Below 0.7 means you were unsure about the split, tags, or a date. Never guess silently; lower the confidence instead.
+7. LINKS TO OTHER THOUGHTS. Text of the form #[Some title](abc123) is a link the user placed by hand. Copy it into the body character for character — brackets, parentheses, the id, all of it — and put it in the thought whose meaning it belongs to. Never rewrite it, never drop the id, never turn it into plain words, never invent one. In a title, write the plain words instead of the link.
+8. confidence 0-1. Below 0.7 means you were unsure about the split, tags, or a date. Never guess silently; lower the confidence instead.
 ${
   corrections.length
     ? `\nHOW THIS USER LIKES THINGS ORGANISED (learned from their own corrections):\n${corrections.map((c) => `- ${c}`).join("\n")}`

@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 
-import { MEDIA, useIsCompact } from "@/lib/breakpoint";
+import { MEDIA } from "@/lib/breakpoint";
+import { thoughtIndex } from "@/lib/thought-index";
 import { modelStore, type Selection } from "@/lib/model-store";
 import { pb } from "@/lib/pb";
 import { sortingStore } from "@/lib/sorting-store";
@@ -20,7 +20,6 @@ import CaptureScreenDesktop from "./CaptureScreen.desktop";
 import CaptureScreenMobile from "./CaptureScreen.mobile";
 
 const DRAFT_KEY = "flux-draft";
-const MAX_HEIGHT = 340;
 
 /**
  * The draft, the save, the background sort and the retry — one copy of each,
@@ -58,9 +57,8 @@ export default function CaptureScreen({
   const [needsKey, setNeedsKey] = useState(false);
   const [failedRequest, setFailedRequest] = useState<FailedRequest | null>(null);
   const [retrying, setRetrying] = useState(false);
-  const areas = useRef<HTMLTextAreaElement[]>([]);
+  const areas = useRef<HTMLElement[]>([]);
   const router = useRouter();
-  const compact = useIsCompact();
 
   /** A `display: none` element has no offset parent, which is exactly the
    *  question being asked: which of the two shells is on screen. */
@@ -71,7 +69,7 @@ export default function CaptureScreen({
     []
   );
 
-  const areaRef = useCallback((el: HTMLTextAreaElement | null) => {
+  const areaRef = useCallback((el: HTMLElement | null) => {
     // Detached nodes are swept on every registration rather than on a cleanup
     // callback, which is the one form of this that works on every React that
     // ships with this app.
@@ -106,25 +104,9 @@ export default function CaptureScreen({
     else localStorage.removeItem(DRAFT_KEY);
   }, [text]);
 
-  /**
-   * Grow with the content. This runs before paint — in an effect it lands a
-   * render late, which shows up as the box refusing to grow until the *next*
-   * keystroke.
-   *
-   * On a phone the cap is also a share of the viewport: 340px of composer with
-   * the keyboard up leaves nothing of the screen to read back.
-   */
-  useLayoutEffect(() => {
-    const el = liveArea();
-    if (!el) return;
-    const cap = compact
-      ? Math.min(MAX_HEIGHT, Math.round(window.innerHeight * 0.3))
-      : MAX_HEIGHT;
-    el.style.height = "0px";
-    const next = Math.min(el.scrollHeight, cap);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > cap ? "auto" : "hidden";
-  }, [text, compact, liveArea]);
+  // Growing with the content used to be measured and set here. The composer is
+  // a contenteditable element now, which grows on its own — what is left is the
+  // ceiling, and a ceiling is a stylesheet's job.
 
   /** Runs in the background — capture must never wait on a model. */
   function sortInBackground(
@@ -162,6 +144,8 @@ export default function CaptureScreen({
           setNeedsKey(false);
           setFailedRequest(null);
         }
+        // The thoughts that just appeared should be mentionable immediately.
+        thoughtIndex.invalidate();
         // The week panel is server-rendered from the thoughts just created.
         router.refresh();
       })
@@ -225,7 +209,7 @@ export default function CaptureScreen({
     void save();
   }
 
-  function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+  function onKeyDown(event: React.KeyboardEvent<HTMLElement>) {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       event.preventDefault();
       void save();

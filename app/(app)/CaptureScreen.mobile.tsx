@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 
+import MentionField from "@/components/MentionField";
 import ModelPicker from "@/components/ModelPicker";
+import { plainMentions } from "@/lib/mentions";
 import { VERSION } from "@/lib/VERSION";
 import type { CaptureShellProps } from "./capture-shell";
 
@@ -41,7 +43,8 @@ export default function CaptureScreenMobile({
   weekPanel,
   weekPanelCompact,
 }: CaptureShellProps) {
-  const typed = text.trim().length;
+  // A mention is one word on screen however long its stored form is.
+  const typed = plainMentions(text).trim().length;
 
   return (
     <div className="flex min-h-full flex-col px-4 pb-8 pt-6 md:px-8 lg:hidden">
@@ -58,16 +61,19 @@ export default function CaptureScreenMobile({
       </p>
 
       <div className="mt-4 rounded-2xl border border-line-strong bg-surface-2 p-1 transition-colors focus-within:border-iris">
-        <textarea
-          ref={areaRef}
+        {/* The ceiling is a share of the viewport as well as a number: 21rem of
+            composer with the keyboard up leaves nothing of the screen to read
+            back. */}
+        <MentionField
+          fieldRef={areaRef}
           suppressHydrationWarning
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={setText}
           onKeyDown={onKeyDown}
           enterKeyHint="enter"
-          placeholder="call the dentist back, ship Aris memory by friday…"
-          className="bare-field flux-scroll block w-full resize-none bg-transparent px-3.5 py-3 font-hand text-[1.05rem] leading-[1.6] text-ink placeholder:text-ink-faint"
-          style={{ minHeight: "8rem" }}
+          ariaLabel="What's on your mind"
+          placeholder="call the dentist back, ship Aris memory by friday… (# to link a thought)"
+          className="flux-scroll block max-h-[min(21rem,30vh)] min-h-[8rem] w-full overflow-y-auto bg-transparent px-3.5 py-3 font-hand text-[1.05rem] leading-[1.6] text-ink"
         />
         {/* Its own line: a picker and a counter side by side at this width are
             two truncated things instead of one legible one. */}

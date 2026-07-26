@@ -91,7 +91,7 @@ export function PanelIcon({ className = "" }: { className?: string }) {
 
 export interface AskShellProps {
   /** Callback refs: both shells mount, only the visible one is written to. */
-  areaRef: (el: HTMLTextAreaElement | null) => void;
+  areaRef: (el: HTMLElement | null) => void;
   endRef: (el: HTMLDivElement | null) => void;
   question: string;
   setQuestion: (value: string) => void;

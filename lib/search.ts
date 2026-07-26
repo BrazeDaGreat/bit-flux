@@ -7,8 +7,9 @@ export interface SearchHit {
   thought: ThoughtRecord;
   score: number;
   /** How this result was found — shown in the UI so "semantic off" is never
-   *  a silent downgrade. */
-  via: "both" | "meaning" | "words";
+   *  a silent downgrade. `named` is not a find at all: the question pointed at
+   *  this thought with `#`, so no ranking got a say. */
+  via: "both" | "meaning" | "words" | "named";
 }
 
 export interface SearchResult {

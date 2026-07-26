@@ -446,6 +446,45 @@
   border-radius: 999px;
 }
 
+/*
+  A writing field that holds objects as well as words.
+
+  Two treatments for one thing, because it is doing two different jobs. Inside
+  a field a mention is being *handled* — the caret steps around it, one
+  backspace takes all of it — so it is drawn as a small solid object you can
+  see the edges of. In finished prose (`MentionText`) it is being *read*, so it
+  is just a tinted word and the wash only appears when it is reached for.
+*/
+@layer components {
+  .flux-field {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    outline: none;
+  }
+  .flux-field:empty::before {
+    content: attr(data-placeholder);
+    color: var(--ink-faint);
+    pointer-events: none;
+  }
+  .flux-mention {
+    border-radius: 5px;
+    padding: 0 0.2em;
+    background: var(--iris-soft);
+    color: var(--iris);
+    white-space: nowrap;
+    /* One object: there is nothing inside it worth selecting half of. */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .flux-field-links .flux-mention {
+    cursor: pointer;
+  }
+  .flux-field-links .flux-mention:hover {
+    background: var(--iris);
+    color: var(--surface);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

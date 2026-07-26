@@ -1,4 +1,5 @@
 import { chat, type ProviderConfig } from "./provider";
+import { plainMentions } from "../mentions";
 import type { Citation, DumpRecord, ThoughtRecord } from "../types";
 import type { SearchHit } from "../search";
 
@@ -17,6 +18,7 @@ Rules:
 - Be direct and specific. Quote the person's own wording when it's the clearest answer.
 - Dates: today's date is given below. "Overdue" means before today.
 - Every thought is marked DONE or OPEN. A DONE thought is finished: never list it as outstanding, never suggest doing it, and never call it overdue — say it is already done. Only OPEN thoughts count as things still to do.
+- A word starting with # is a thought the person pointed at deliberately. When it is followed by a number, that number is its entry below — answer about that exact thought, not one that merely sounds like it.
 - No preamble, no "based on your thoughts". Just answer.`;
 
 /** Completion is the fact most often got wrong, so it is stated first, in one
@@ -36,13 +38,17 @@ export function buildContext(context: AskContext): string {
       const thought = hit.thought;
       const dump = context.dumps.get(thought.dump);
       const done = thought.status === "done";
+      // Mentions are flattened on the way in: `#[Dentist](abc)` is a link in
+      // the app and noise in a prompt, and the title is the part that means
+      // anything to a model.
+      const body = plainMentions(thought.body);
       return [
-        `[${index + 1}] ${done ? "[DONE] " : ""}${thought.title}`,
+        `[${index + 1}] ${done ? "[DONE] " : ""}${plainMentions(thought.title)}`,
         `    status: ${label(thought)}`,
         `    captured: ${(thought.created ?? "").slice(0, 10)}`,
-        `    ${thought.body.replace(/\n/g, "\n    ")}`,
+        `    ${body.replace(/\n/g, "\n    ")}`,
         dump
-          ? `    original message: "${dump.text.slice(0, 400).replace(/\n/g, " ")}"`
+          ? `    original message: "${plainMentions(dump.text).slice(0, 400).replace(/\n/g, " ")}"`
           : "",
       ]
         .filter(Boolean)

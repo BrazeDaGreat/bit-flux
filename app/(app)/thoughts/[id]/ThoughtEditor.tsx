@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Caret, TagChip } from "@/components/Chips";
+import MentionField from "@/components/MentionField";
 import { pb } from "@/lib/pb";
+import { thoughtIndex } from "@/lib/thought-index";
 import { statusPatch } from "@/lib/thought-actions";
 import { clockTime, relativeTime, toDate } from "@/lib/time";
 import type {
@@ -52,6 +54,9 @@ export default function ThoughtEditor({
 }) {
   const router = useRouter();
   const [thought, setThought] = useState(initial);
+  // The body is held here rather than in the DOM because inserting a mention
+  // rewrites it — an uncontrolled field would keep the text it was given.
+  const [body, setBody] = useState(initial.body);
   const [showRaw, setShowRaw] = useState(false);
   const [addingTag, setAddingTag] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,6 +82,9 @@ export default function ThoughtEditor({
           needs_review: false,
         });
       setThought(updated);
+      if (typeof updated.body === "string") setBody(updated.body);
+      // A renamed thought is a renamed row in every `#` list.
+      thoughtIndex.invalidate();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save that change");
@@ -180,15 +188,20 @@ export default function ThoughtEditor({
             />
           </div>
 
-          <textarea
-            defaultValue={thought.body}
-            aria-label="Body"
-            placeholder="Add anything else worth keeping…"
-            onBlur={(e) =>
-              e.target.value !== thought.body && void patch({ body: e.target.value })
-            }
-            rows={6}
-            className="mt-2 w-full resize-y rounded-lg border border-transparent bg-transparent px-1.5 py-1 font-hand text-[1rem] leading-[1.65] text-ink outline-none transition-colors placeholder:text-ink-faint hover:border-line focus:border-iris max-lg:border-line"
+          {/* Thoughts named in this one are chips here too, not their stored
+              form — you read the sentence you wrote whether or not you are
+              editing it, and a chip is the way to the thought it names. */}
+          <MentionField
+            value={body}
+            onChange={setBody}
+            onBlur={() => {
+              if (body !== thought.body) void patch({ body });
+            }}
+            linkMentions
+            ariaLabel="Body"
+            placeholder="Add anything else worth keeping… (# to link a thought)"
+            wrapperClassName="mt-2"
+            className="min-h-[9.5rem] rounded-lg border border-transparent px-1.5 py-1 font-hand text-[1rem] leading-[1.65] text-ink transition-colors hover:border-line focus:border-iris max-lg:border-line"
           />
 
           {/* A border that only exists on hover tells a thumb nothing, so below

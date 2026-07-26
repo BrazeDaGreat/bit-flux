@@ -3,6 +3,8 @@
 import Link from "next/link";
 
 import FilterMenu, { FilterChips } from "@/components/FilterMenu";
+import MentionField from "@/components/MentionField";
+import MentionText from "@/components/MentionText";
 import ModelPicker from "@/components/ModelPicker";
 import { Answer, EXAMPLES, PanelIcon, type AskShellProps } from "./ask-shell";
 
@@ -108,7 +110,7 @@ export default function AskRoomMobile({
                     key={index}
                     className="max-w-[88%] self-end rounded-2xl rounded-br-md bg-surface-3 px-3.5 py-2.5 text-[0.95rem] leading-relaxed text-ink"
                   >
-                    {turn.content}
+                    <MentionText text={turn.content} />
                   </p>
                 ) : (
                   <div key={index} className="flex flex-col gap-2">
@@ -217,16 +219,17 @@ export default function AskRoomMobile({
               />
             </div>
 
-            <textarea
-              ref={areaRef}
+            <MentionField
+              fieldRef={areaRef}
               value={question}
-              onChange={(e) => setQuestion(e.target.value)}
+              onChange={setQuestion}
               onFocus={onComposerFocus}
               onBlur={onComposerBlur}
-              rows={1}
               enterKeyHint="enter"
-              placeholder="Ask about anything you've written…"
-              className="bare-field flux-scroll min-h-[var(--tap)] min-w-0 flex-1 resize-none self-center bg-transparent px-1 py-2.5 font-hand text-[1rem] leading-[1.4] text-ink placeholder:text-ink-faint"
+              ariaLabel="Your question"
+              placeholder="Ask about anything you've written… (# to name a thought)"
+              wrapperClassName="min-w-0 flex-1 self-center"
+              className="flux-scroll max-h-40 min-h-[var(--tap)] overflow-y-auto bg-transparent px-1 py-2.5 font-hand text-[1rem] leading-[1.4] text-ink"
             />
             <button
               type="submit"
