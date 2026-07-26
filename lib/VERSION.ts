@@ -1,6 +1,6 @@
-export const VERSION = "v0.4.5-alpha (26.07.26)";
+export const VERSION = "v0.4.6-alpha (26.07.26)";
 
-interface ChangelogEntry {
+export interface ChangelogEntry {
   added?: string[];
   changed?: string[];
   fixed?: string[];
@@ -14,8 +14,26 @@ interface ChangelogEntry {
  * - Changed is for changes in existing functionality, or deprecation of existing features.
  * - Fixed is for any big or small bug fixes. Bug fixes shouldn't be mentioned anywhere else.
  * - Removed is for removal of functionality or deprecated features.
+ *
+ * Every line is read by someone, in the "What's new" panel on Capture. Inline
+ * markdown is rendered there: `` `code` `` for a key or a character to type,
+ * `**bold**` for emphasis, `*italic*`. Nothing else — no headings, no links,
+ * no lists inside a line, since one line already is a list item.
  */
 export const CHANGELOG: Record<string, ChangelogEntry> = {
+  "v0.4.6-alpha (26.07.26)": {
+    added: [
+      "A **What's new** link in the top left of Capture, opening this changelog for the current version and every one before it",
+    ],
+    changed: [
+      "Screens now appear the moment you ask for one, with their layout already in place while the contents arrive",
+    ],
+    fixed: [
+      "Keyboard shortcuts switch pages immediately instead of pausing on the page you were leaving",
+      "Opening a thought from its right-click menu no longer reloads the whole app",
+      "Pressing `/` now reliably leaves the cursor in the search box",
+    ],
+  },
   "v0.4.5-alpha (26.07.26)": {
     added: [
       "Type `#` to link thoughts in the capture composer, ask room, and thought editor",
@@ -27,7 +45,7 @@ export const CHANGELOG: Record<string, ChangelogEntry> = {
       "Character counter counts actual written words instead of raw characters",
     ],
   },
-  "v0.4.0 (26.07.25)": {
+  "v0.4.0-alpha (26.07.25)": {
     added: [
       "Responsive UI layout that adapts to different screen sizes",
       "Context menu component for enhanced right-click interactions",

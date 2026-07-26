@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import MentionField from "@/components/MentionField";
 import ModelPicker from "@/components/ModelPicker";
+import WhatsNew from "@/components/WhatsNew";
 import { plainMentions } from "@/lib/mentions";
 import { VERSION } from "@/lib/VERSION";
 import type { CaptureShellProps } from "./capture-shell";
@@ -40,8 +41,13 @@ export default function CaptureScreenDesktop({
 
   return (
     <div className="relative hidden min-h-full flex-col px-5 py-6 sm:px-8 lg:flex">
-      {/* Peripheral, not part of the main column. */}
-      <div className="flex justify-end">{weekPanel}</div>
+      {/* Peripheral, not part of the main column — both corners of it. The week
+          keeps the right edge it has always had; the changelog takes the left,
+          which was empty. */}
+      <div className="flex items-start justify-between gap-3">
+        <WhatsNew />
+        {weekPanel}
+      </div>
 
       <div className="flex flex-1 items-center justify-center py-8">
         <div className="w-full max-w-xl">

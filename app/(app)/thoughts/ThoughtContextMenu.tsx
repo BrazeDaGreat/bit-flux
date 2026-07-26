@@ -9,6 +9,8 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import {
   ContextMenu,
@@ -38,7 +40,16 @@ export function useThoughtContextMenu(options: ThoughtContextMenuOptions) {
   const { thought, tags, onStatus, onToggleTag, onDelete } = options;
   const { point, close, contextMenuProps } =
     useContextMenuTrigger<HTMLElement>();
+  const router = useRouter();
   const href = `/thoughts/${thought.id}`;
+
+  // "Open" is the same navigation the row's own link performs, so it warms the
+  // route the same way — but only once the menu is up. This hook runs for every
+  // row in a list that can be 500 long; prefetching on mount would be 500
+  // requests for one that gets opened.
+  useEffect(() => {
+    if (point) router.prefetch(href);
+  }, [point, href, router]);
 
   return {
     contextMenuProps,
@@ -48,10 +59,11 @@ export function useThoughtContextMenu(options: ThoughtContextMenuOptions) {
         onClose={close}
         ariaLabel={`Actions for ${thought.title}`}
       >
-        <ContextMenuItem
-          icon={<FolderOpen />}
-          onClick={() => window.location.assign(href)}
-        >
+        {/* `router.push`, not `location.assign` — the latter is a document
+            navigation, which tears down the app and reloads it just to reach a
+            route the client can already render. Clicking the row's own link
+            never did that, and neither should this. */}
+        <ContextMenuItem icon={<FolderOpen />} onClick={() => router.push(href)}>
           Open
         </ContextMenuItem>
         <ContextMenuItem

@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import MentionField from "@/components/MentionField";
 import ModelPicker from "@/components/ModelPicker";
+import WhatsNew from "@/components/WhatsNew";
 import { plainMentions } from "@/lib/mentions";
 import { VERSION } from "@/lib/VERSION";
 import type { CaptureShellProps } from "./capture-shell";
@@ -49,8 +50,14 @@ export default function CaptureScreenMobile({
   return (
     <div className="flex min-h-full flex-col px-4 pb-8 pt-6 md:px-8 lg:hidden">
       {/* A tablet has the room again, so the week goes back to the corner it
-          occupies on a desktop and stops being a line under the composer. */}
-      <div className="mb-6 hidden justify-end md:flex">{weekPanel}</div>
+          occupies on a desktop and stops being a line under the composer. The
+          changelog link holds the other corner at both widths — one quiet line
+          above the heading, so the composer still starts at a fixed place
+          rather than one that depends on what is in the row. */}
+      <div className="mb-4 flex items-start justify-between gap-3 md:mb-6">
+        <WhatsNew />
+        <div className="hidden md:block">{weekPanel}</div>
+      </div>
 
       <div className="flex flex-1 flex-col md:mx-auto md:w-full md:max-w-xl">
       <h1 className="font-hand text-[1.5rem] leading-[1.25] tracking-[-0.01em] text-ink">

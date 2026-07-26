@@ -13,6 +13,19 @@ const GO_TO: Record<string, string> = {
   s: "/settings",
 };
 
+/** Every distinct place a shortcut can land, `/` and `/thoughts` counted once. */
+const PREFETCH = [...new Set(Object.values(GO_TO))];
+
+/**
+ * What `<Link>` prefetches with: the whole route when it is static, the shell
+ * down to its `loading.tsx` when it is dynamic. `prefetch` requires the kind
+ * but Next.js exports its enum only from an internal path, so the value is
+ * spelled out and given that type through the router's own signature.
+ */
+const AUTO = "auto" as NonNullable<
+  Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]
+>["kind"];
+
 const DESTINATIONS = [
   { key: "d", label: "Dashboard" },
   { key: "c", label: "Capture" },
@@ -22,6 +35,28 @@ const DESTINATIONS = [
   { key: "g", label: "Tags & people" },
   { key: "s", label: "Settings" },
 ];
+
+/**
+ * `/` navigates and then focuses, and the box it focuses does not exist yet —
+ * Thoughts streams its skeleton first and the real input lands with the data.
+ * A single delay has to guess how long that takes, so this watches for it
+ * instead and gives up after two seconds rather than focusing something the
+ * user has since navigated away from.
+ */
+function focusSearch(): void {
+  const deadline = Date.now() + 2000;
+  const look = () => {
+    const input = document.querySelector<HTMLInputElement>(
+      'input[placeholder^="Search"]'
+    );
+    if (input) {
+      input.focus();
+      return;
+    }
+    if (Date.now() < deadline) window.requestAnimationFrame(look);
+  };
+  window.requestAnimationFrame(look);
+}
 
 function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -42,6 +77,26 @@ export default function Shortcuts() {
   const leader = useRef(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // A shortcut has no link to hover and no viewport to enter, so nothing warms
+  // these routes the way `<Link>` warms the rail's. Without this the keystroke
+  // is where the request starts, and `g t` waits on a round trip that a click
+  // on "Thoughts" had already made — which is exactly backwards. Every one of
+  // these is a dynamic route, so what arrives is the shell down to its
+  // `loading.tsx` and not the data behind it: seven cheap payloads, held for
+  // the whole session and re-warmed when Next.js says they went stale.
+  useEffect(() => {
+    let cancelled = false;
+    for (const href of PREFETCH) {
+      const warm = () => {
+        if (!cancelled) router.prefetch(href, { kind: AUTO, onInvalidate: warm });
+      };
+      warm();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -92,12 +147,7 @@ export default function Shortcuts() {
       if (key === "/") {
         event.preventDefault();
         router.push("/thoughts");
-        // The search box on that page autofocuses when asked to.
-        window.setTimeout(() => {
-          document
-            .querySelector<HTMLInputElement>('input[placeholder^="Search"]')
-            ?.focus();
-        }, 350);
+        focusSearch();
       }
     }
 
