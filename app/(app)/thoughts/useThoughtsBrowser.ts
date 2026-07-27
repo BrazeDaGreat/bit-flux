@@ -13,8 +13,11 @@ import {
 import { useIsCompact } from "@/lib/breakpoint";
 import {
   deleteThought,
+  duePatch,
+  setDue,
   setStatus,
   setThoughtTags,
+  writeError,
 } from "@/lib/thought-actions";
 import type { TagRecord, ThoughtRecord } from "@/lib/types";
 import { viewPrefs } from "@/lib/view-prefs";
@@ -29,10 +32,13 @@ import {
   type WhenKey,
 } from "./filters";
 
-export const BUCKETS: { key: Bucket; label: string }[] = [
-  { key: "open", label: "Open" },
-  { key: "done", label: "Done" },
-  { key: "archived", label: "Archived" },
+/** `short` is what a 360px segmented control can hold. Same four piles, one
+ *  fewer syllable each. */
+export const BUCKETS: { key: Bucket; label: string; short: string }[] = [
+  { key: "open", label: "Open", short: "Open" },
+  { key: "done", label: "Done", short: "Done" },
+  { key: "longterm", label: "Long-term", short: "Long" },
+  { key: "archived", label: "Archived", short: "Archive" },
 ];
 
 export const VIEWS: { key: ViewMode; label: string }[] = [
@@ -111,6 +117,28 @@ export function useThoughtsBrowser({
     to: ThoughtRecord["status"];
   } | null>(null);
 
+  /**
+   * Which rows have a write in the air.
+   *
+   * An optimistic list tells a small lie for as long as the network takes: the
+   * row already looks moved. Usually that lie comes true and the honesty costs
+   * nothing. When it doesn't — a rejected value, a dropped connection — the row
+   * snaps back a second later with no explanation of what the second was for.
+   * So a row that is mid-write says so, quietly, on the one mark already
+   * carrying its state.
+   */
+  const [writing, setWriting] = useState<ReadonlySet<string>>(() => new Set());
+
+  const mark = useCallback((id: string, busy: boolean) => {
+    setWriting((prev) => {
+      if (prev.has(id) === busy) return prev;
+      const next = new Set(prev);
+      if (busy) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
   const searchRef = useRef<HTMLInputElement>(null);
 
   // A server refresh (after an edit elsewhere) replaces what's on screen.
@@ -123,7 +151,12 @@ export function useThoughtsBrowser({
   }, [undo]);
 
   const counts = useMemo(() => {
-    const out: Record<Bucket, number> = { open: 0, done: 0, archived: 0 };
+    const out: Record<Bucket, number> = {
+      open: 0,
+      done: 0,
+      longterm: 0,
+      archived: 0,
+    };
     for (const thought of items) {
       if (thought.status in out) out[thought.status as Bucket] += 1;
     }
@@ -168,19 +201,22 @@ export function useThoughtsBrowser({
         )
       );
       setUndo({ id, title: before.title, from: before.status, to: status });
+      mark(id, true);
 
       try {
         await setStatus(id, status);
         router.refresh();
-      } catch {
+      } catch (err) {
         setItems((prev) =>
           prev.map((thought) => (thought.id === id ? before : thought))
         );
         setUndo(null);
-        setError("That change didn't stick. Try again.");
+        setError(writeError(err, "That change didn't stick."));
+      } finally {
+        mark(id, false);
       }
     },
-    [items, router]
+    [items, router, mark]
   );
 
   const toggleTag = useCallback(
@@ -198,18 +234,51 @@ export function useThoughtsBrowser({
           thought.id === id ? { ...thought, tags: next } : thought
         )
       );
+      mark(id, true);
 
       try {
         await setThoughtTags(id, next);
         router.refresh();
-      } catch {
+      } catch (err) {
         setItems((prev) =>
           prev.map((thought) => (thought.id === id ? before : thought))
         );
-        setError("That tag change didn't stick. Try again.");
+        setError(writeError(err, "That tag change didn't stick."));
+      } finally {
+        mark(id, false);
       }
     },
-    [items, router]
+    [items, router, mark]
+  );
+
+  /** Same shape as the tag toggle: the row redraws now, the write follows, and
+   *  a failure puts the old date back rather than leaving the screen lying. */
+  const setDueDate = useCallback(
+    async (id: string, value: string | null) => {
+      const before = items.find((thought) => thought.id === id);
+      if (!before) return;
+
+      setError(null);
+      setItems((prev) =>
+        prev.map((thought) =>
+          thought.id === id ? { ...thought, ...duePatch(value) } : thought
+        )
+      );
+      mark(id, true);
+
+      try {
+        await setDue(id, value);
+        router.refresh();
+      } catch (err) {
+        setItems((prev) =>
+          prev.map((thought) => (thought.id === id ? before : thought))
+        );
+        setError(writeError(err, "That date didn't stick."));
+      } finally {
+        mark(id, false);
+      }
+    },
+    [items, router, mark]
   );
 
   const remove = useCallback(
@@ -224,14 +293,14 @@ export function useThoughtsBrowser({
       try {
         await deleteThought(id);
         router.refresh();
-      } catch {
+      } catch (err) {
         setItems((prev) => {
           if (prev.some((thought) => thought.id === id)) return prev;
           const restored = [...prev];
           restored.splice(Math.min(index, restored.length), 0, before);
           return restored;
         });
-        setError("Couldn't delete that thought. Try again.");
+        setError(writeError(err, "Couldn't delete that thought."));
       }
     },
     [items, router]
@@ -306,8 +375,10 @@ export function useThoughtsBrowser({
   const viewProps = {
     thoughts: visible,
     tags,
+    pending: writing,
     onStatus: move,
     onToggleTag: toggleTag,
+    onDue: setDueDate,
     onDelete: remove,
   };
 

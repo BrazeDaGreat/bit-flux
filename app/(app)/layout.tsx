@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import AppWindow from "@/components/AppWindow";
 import MobileBar from "@/components/MobileBar";
 import MobileNav from "@/components/MobileNav";
+import FreshData from "@/components/FreshData";
 import Shortcuts from "@/components/Shortcuts";
+import StickyHost from "@/components/StickyHost";
 import WindowRail from "@/components/WindowRail";
 import { currentUser } from "@/lib/pb-server";
 
@@ -30,6 +32,14 @@ export default async function AppLayout({
       nav={<MobileNav />}
     >
       <Shortcuts />
+      {/* Screens are served from the browser's own copy and brought up to date
+          behind the paint. In the layout because it has to watch the route
+          change, which is the moment a page component is being replaced. */}
+      <FreshData />
+      {/* Here rather than on Capture: the note window is rendered out of this
+          tree, so whatever owns it has to outlive every page you can walk to
+          while it is open. */}
+      <StickyHost userId={user.id} />
       {children}
     </AppWindow>
   );

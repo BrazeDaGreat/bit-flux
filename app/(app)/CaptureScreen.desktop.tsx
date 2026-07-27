@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import MentionField from "@/components/MentionField";
 import ModelPicker from "@/components/ModelPicker";
+import PopupButton from "@/components/PopupButton";
 import WhatsNew from "@/components/WhatsNew";
 import { plainMentions } from "@/lib/mentions";
 import { VERSION } from "@/lib/VERSION";
@@ -45,7 +46,10 @@ export default function CaptureScreenDesktop({
           keeps the right edge it has always had; the changelog takes the left,
           which was empty. */}
       <div className="flex items-start justify-between gap-3">
-        <WhatsNew />
+        <div className="flex items-center gap-4">
+          <WhatsNew />
+          <PopupButton />
+        </div>
         {weekPanel}
       </div>
 

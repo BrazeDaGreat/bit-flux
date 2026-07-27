@@ -6,6 +6,7 @@ import { Caret } from "@/components/Chips";
 import MentionText from "@/components/MentionText";
 import { toDate } from "@/lib/time";
 import type { TagRecord, ThoughtRecord } from "@/lib/types";
+import { Facets } from "./Facets";
 import { dueValue, whenOf } from "./filters";
 import { useThoughtContextMenu } from "./ThoughtContextMenu";
 
@@ -19,8 +20,13 @@ import { useThoughtContextMenu } from "./ThoughtContextMenu";
  */
 
 export interface RowActions {
+  /** Ids with a write in the air. Travels with the actions rather than beside
+   *  them so every view that spreads them gets it for free. */
+  pending: ReadonlySet<string>;
   onStatus: (id: string, status: ThoughtRecord["status"]) => void;
   onToggleTag: (id: string, tagId: string) => void;
+  /** An ISO instant, or null to take the date off entirely. */
+  onDue: (id: string, value: string | null) => void;
   onDelete: (id: string) => void;
 }
 
@@ -40,12 +46,17 @@ const TONE: Record<string, string> = {
  */
 export function StatusDot({
   thought,
+  busy = false,
   onStatus,
 }: {
   thought: ThoughtRecord;
+  /** A write for this thought hasn't come back yet. */
+  busy?: boolean;
 } & Pick<RowActions, "onStatus">) {
   const done = thought.status === "done";
   const archived = thought.status === "archived";
+  const longterm = thought.status === "longterm";
+  const parked = archived || longterm;
 
   return (
     // The circle stays 20px at every size — the whole list's rhythm is built
@@ -53,25 +64,53 @@ export function StatusDot({
     // which is invisible and is the part a thumb actually needs.
     <button
       type="button"
-      onClick={() => onStatus(thought.id, done || archived ? "open" : "done")}
+      onClick={() => onStatus(thought.id, done || parked ? "open" : "done")}
       aria-pressed={done}
       aria-label={done ? `Reopen ${thought.title}` : `Mark ${thought.title} done`}
-      title={done ? "Reopen" : archived ? "Bring back" : "Mark done"}
+      title={
+        done
+          ? "Reopen"
+          : archived
+            ? "Bring back"
+            : longterm
+              ? "Bring into open"
+              : "Mark done"
+      }
+      aria-busy={busy || undefined}
       className="group/dot grid h-5 w-5 shrink-0 place-items-center rounded-full max-lg:h-11 max-lg:w-11"
     >
+      {/* The one mark already carrying this thought's state is the one that
+          says the state is still being agreed with the server. A ring around
+          it, breathing — not a spinner, which would be a second thing to look
+          at, and not a greyed-out row, which would say "unavailable" about
+          something that is merely a moment away. */}
       <span
+        // The ring colour is set here rather than as a class: it has to beat
+        // whichever border the resting state already asked for, and utilities
+        // of equal specificity are settled by stylesheet order, not by which
+        // one is written last in the attribute.
+        style={busy ? { borderColor: "var(--iris)" } : undefined}
         className={`grid h-5 w-5 place-items-center rounded-full border transition-colors ${
+          busy ? "motion-safe:animate-pulse" : ""
+        } ${
           done
             ? "border-mint bg-mint-soft group-hover/dot:bg-transparent"
             : archived
               ? "border-line-strong group-hover/dot:border-sage"
-              : "border-line-strong group-hover/dot:border-mint"
+              : longterm
+                ? "border-line-strong group-hover/dot:border-sky"
+                : "border-line-strong group-hover/dot:border-mint"
         }`}
       >
-        {archived ? (
+        {/* Parked in two different ways, said with two different inks: sage is
+            put away, sky is far off. Neither is a tick, because neither is
+            finished. */}
+        {parked ? (
           <span
             aria-hidden="true"
-            className="h-1.5 w-1.5 rounded-full bg-sage transition-opacity group-hover/dot:opacity-45"
+            className={`h-1.5 w-1.5 rounded-full transition-opacity group-hover/dot:opacity-45 ${
+              archived ? "bg-sage" : "bg-sky"
+            }`}
           />
         ) : (
           <Tick
@@ -129,8 +168,10 @@ export function ThoughtRow({
   tags,
   expanded,
   onToggle,
+  pending,
   onStatus,
   onToggleTag,
+  onDue,
   onDelete,
 }: {
   thought: ThoughtRecord;
@@ -139,22 +180,25 @@ export function ThoughtRow({
   onToggle: () => void;
 } & RowActions) {
   const done = thought.status === "done";
+  const busy = pending.has(thought.id);
   const panelId = `thought-${thought.id}-detail`;
   const { contextMenuProps, contextMenu } = useThoughtContextMenu({
     thought,
     tags,
     onStatus,
     onToggleTag,
+    onDue,
     onDelete,
   });
 
   return (
     <li
       className="border-b border-line/60 last:border-b-0"
+      aria-busy={busy || undefined}
       {...contextMenuProps}
     >
       <div className="group flex items-center gap-2.5 rounded-lg px-1.5 py-2 transition-colors hover:bg-surface-2 max-lg:min-h-[3.5rem] max-lg:py-1.5">
-        <StatusDot thought={thought} onStatus={onStatus} />
+        <StatusDot thought={thought} busy={busy} onStatus={onStatus} />
         <button
           type="button"
           onClick={onToggle}
@@ -174,7 +218,14 @@ export function ThoughtRow({
             >
               {thought.title}
             </span>
-            <MetaLine thought={thought} />
+            <MetaLine thought={thought} tags={tags} />
+          </span>
+          {/* What it's about, before what it's due. The title gives up width
+              first — a truncated title is still readable, a truncated chip is
+              not — and below the desktop breakpoint this drops to the row's
+              own second line instead. */}
+          <span className="hidden min-w-0 max-w-[45%] shrink items-center overflow-hidden lg:flex">
+            <Facets thought={thought} tags={tags} />
           </span>
           {thought.needs_review && (
             <span
@@ -209,13 +260,22 @@ export function ThoughtRow({
 /** The second line of a row, below the desktop breakpoint only: what the
  *  desktop puts at the end of the title, where a 360px screen has no room for
  *  it. Renders nothing when there is nothing to say. */
-function MetaLine({ thought }: { thought: ThoughtRecord }) {
-  if (!dueValue(thought) && !thought.needs_review) return null;
+function MetaLine({
+  thought,
+  tags,
+}: {
+  thought: ThoughtRecord;
+  tags: TagRecord[];
+}) {
+  const labelled =
+    (thought.tags?.length ?? 0) > 0 || (thought.people?.length ?? 0) > 0;
+  if (!dueValue(thought) && !thought.needs_review && !labelled) return null;
   return (
-    <span className="mt-0.5 hidden items-center gap-2 max-lg:flex">
+    <span className="mt-1 hidden items-center gap-2 overflow-hidden max-lg:flex">
       <DateStamp thought={thought} />
+      <Facets thought={thought} tags={tags} limit={1} peopleLimit={1} />
       {thought.needs_review && (
-        <span className="flex items-center gap-1.5 font-data text-[0.75rem] text-amber">
+        <span className="flex shrink-0 items-center gap-1.5 font-data text-[0.75rem] text-amber">
           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-amber" />
           needs a look
         </span>
@@ -327,6 +387,21 @@ export function ThoughtDetail({
             Archive
           </button>
         )}
+        {/* One move, both directions, in the place the other one-word status
+            moves already are. */}
+        <button
+          type="button"
+          onClick={() =>
+            onStatus(thought.id, thought.status === "longterm" ? "open" : "longterm")
+          }
+          className={`font-data text-[0.66rem] uppercase tracking-[0.1em] transition-colors max-lg:h-11 max-lg:rounded-full max-lg:px-4 max-lg:text-[0.75rem] ${
+            thought.status === "longterm"
+              ? "text-sky hover:text-ink"
+              : "text-ink-faint hover:text-sky"
+          }`}
+        >
+          {thought.status === "longterm" ? "Bring into open" : "Long-term"}
+        </button>
         {/* Already said on the row's own second line below `lg`. */}
         {thought.needs_review && (
           <span className="font-data text-[0.66rem] text-amber max-lg:hidden">
@@ -343,33 +418,37 @@ export function ThoughtDetail({
 export function ThoughtCard({
   thought,
   tags,
+  pending,
   onStatus,
   onToggleTag,
+  onDue,
   onDelete,
 }: {
   thought: ThoughtRecord;
   tags: TagRecord[];
 } & RowActions) {
   const done = thought.status === "done";
-  const rowTags = (thought.tags ?? [])
-    .map((tagId) => tags.find((t) => t.id === tagId))
-    .filter((t): t is TagRecord => Boolean(t));
+  const busy = pending.has(thought.id);
+  const labelled =
+    (thought.tags?.length ?? 0) > 0 || (thought.people?.length ?? 0) > 0;
   const { contextMenuProps, contextMenu } = useThoughtContextMenu({
     thought,
     tags,
     onStatus,
     onToggleTag,
+    onDue,
     onDelete,
   });
 
   return (
     <li
       className="rounded-xl border border-line bg-surface p-2.5 transition-colors hover:border-line-strong"
+      aria-busy={busy || undefined}
       {...contextMenuProps}
     >
       <div className="flex items-start gap-2">
         <span className="pt-0.5">
-          <StatusDot thought={thought} onStatus={onStatus} />
+          <StatusDot thought={thought} busy={busy} onStatus={onStatus} />
         </span>
         <Link
           href={`/thoughts/${thought.id}`}
@@ -387,21 +466,10 @@ export function ThoughtCard({
         )}
       </div>
 
-      {(rowTags.length > 0 || dueValue(thought)) && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[1.75rem] max-lg:pl-[3.4rem]">
+      {(labelled || dueValue(thought)) && (
+        <div className="mt-1.5 flex items-center gap-1.5 overflow-hidden pl-[1.75rem] max-lg:pl-[3.4rem]">
           <DateStamp thought={thought} />
-          {rowTags.slice(0, 2).map((tag) => (
-            <span
-              key={tag.id}
-              className="rounded-full px-1.5 py-0.5 text-[0.64rem] max-lg:text-[0.75rem]"
-              style={{
-                background: `var(--${tag.color || "iris"}-soft)`,
-                color: `var(--${tag.color || "iris"})`,
-              }}
-            >
-              {tag.name}
-            </span>
-          ))}
+          <Facets thought={thought} tags={tags} />
         </div>
       )}
       {contextMenu}
@@ -435,6 +503,9 @@ function formatDate(value: string, precision?: string): string {
     day: "numeric",
     month: "short",
   });
+  // A whole-day date has no hour to report. Quick "Due today" writes one, and
+  // reading "23:59" back as if it were asked for would be inventing a time.
+  if (precision === "day") return day;
   if (vague) {
     return `${day} · ${precision === "week" ? "sometime that week" : precision === "month" ? "sometime that month" : "no fixed time"}`;
   }

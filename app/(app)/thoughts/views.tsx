@@ -1,8 +1,10 @@
 "use client";
 
+import { GripVertical } from "lucide-react";
 import Link from "next/link";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
+import { applyTagOrder, moveTag, tagOrder } from "@/lib/tag-order";
 import { dayKey, dayLabel, toDate } from "@/lib/time";
 import type { TagRecord, ThoughtRecord } from "@/lib/types";
 import { byDate, dueValue } from "./filters";
@@ -450,17 +452,34 @@ export function CalendarView({ thoughts, tags, ...actions }: ViewProps) {
               type="button"
               onClick={() => setPicked(isPicked ? null : { key, date })}
               aria-pressed={isPicked}
-              className={`min-h-[4.5rem] p-1 text-left align-top transition-colors ${
-                isPicked ? "bg-iris-soft" : "bg-surface hover:bg-surface-2"
+              aria-current={isToday ? "date" : undefined}
+              // Today is drawn, not tinted: an iris rule around the square and
+              // the date set solid inside it. A month is a page of near
+              // identical cells, and the one question asked of it more than any
+              // other is "where am I" — that should be answerable from across
+              // the room, not by reading 31 small grey numbers.
+              className={`relative min-h-[4.5rem] p-1 text-left align-top transition-colors ${
+                isPicked
+                  ? "bg-iris-soft"
+                  : isToday
+                    ? "bg-surface hover:bg-iris-soft/50"
+                    : "bg-surface hover:bg-surface-2"
               }`}
+              style={
+                isToday
+                  ? { boxShadow: "inset 0 0 0 1.5px var(--iris)" }
+                  : undefined
+              }
             >
-              <span
-                className={`font-data text-[0.62rem] ${
-                  isToday ? "text-iris" : "text-ink-faint"
-                }`}
-              >
-                {date.getDate()}
-              </span>
+              {isToday ? (
+                <span className="inline-grid h-[1.15rem] min-w-[1.15rem] place-items-center rounded-full bg-iris px-1 font-data text-[0.6rem] font-medium text-white dark:text-[#1a1622]">
+                  {date.getDate()}
+                </span>
+              ) : (
+                <span className="font-data text-[0.62rem] text-ink-faint">
+                  {date.getDate()}
+                </span>
+              )}
               <span className="mt-0.5 flex flex-col gap-0.5">
                 {items.slice(0, 2).map((thought) => (
                   <span
@@ -516,17 +535,20 @@ export function CalendarView({ thoughts, tags, ...actions }: ViewProps) {
                   jumpTo(key);
                 }}
                 aria-pressed={isPicked}
-                aria-label={`${date.getDate()} — ${items.length} thought${
-                  items.length === 1 ? "" : "s"
-                }`}
+                aria-current={isToday ? "date" : undefined}
+                aria-label={`${isToday ? "Today, " : ""}${date.getDate()} — ${
+                  items.length
+                } thought${items.length === 1 ? "" : "s"}`}
                 className={`flex h-11 flex-col items-center justify-center gap-1 transition-colors ${
                   isPicked ? "bg-iris-soft" : ""
                 }`}
               >
+                {/* The same solid disc the desktop grid uses, so "where am I"
+                    is one mark at both widths. */}
                 <span
-                  className={`font-data text-[0.8rem] leading-none ${
+                  className={`grid h-[1.4rem] min-w-[1.4rem] place-items-center rounded-full font-data text-[0.8rem] leading-none ${
                     isToday
-                      ? "text-iris"
+                      ? "bg-iris font-medium text-white dark:text-[#1a1622]"
                       : items.length > 0
                         ? "text-ink"
                         : "text-ink-faint"
@@ -609,28 +631,53 @@ export function CalendarView({ thoughts, tags, ...actions }: ViewProps) {
 function StepButton({
   label,
   onClick,
+  disabled = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       title={label}
-      className="rounded-full border border-line-strong px-2 py-0.5 font-data text-[0.7rem] text-ink-soft transition-colors hover:border-iris hover:text-ink max-lg:h-11 max-lg:w-11 max-lg:px-0 max-lg:text-[0.9rem]"
+      className="rounded-full border border-line-strong px-2 py-0.5 font-data text-[0.7rem] text-ink-soft transition-colors hover:border-iris hover:text-ink disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-line-strong max-lg:h-11 max-lg:w-11 max-lg:px-0 max-lg:text-[0.9rem]"
     >
       {children}
     </button>
   );
 }
 
+/**
+ * Piles by subject, stacked in whatever order the week actually has.
+ *
+ * The order is the one thing this view could not previously say. Which pile
+ * comes first is a statement about what currently matters — Family above Work
+ * during a hard month, the other way round in a launch week — and it was
+ * previously decided by whichever tag happened to be created first. So the
+ * headers are handles: drag one and its whole pile travels with it, because a
+ * heading and the things under it are one object, not two.
+ *
+ * The handle is quiet until you go looking for it. Reordering is a thing done
+ * rarely and deliberately; a grip printed beside every tag all day would be
+ * three more marks on a screen whose whole job is to have few.
+ */
 export function TagsView({ thoughts, tags, ...actions }: ViewProps) {
+  const order = useSyncExternalStore(
+    tagOrder.subscribe,
+    tagOrder.getSnapshot,
+    tagOrder.getServerSnapshot
+  );
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+
   const groups = useMemo(() => {
-    const out = tags
+    const out = applyTagOrder(tags, order)
       .map((tag) => ({
         tag,
         items: thoughts.filter((t) => (t.tags ?? []).includes(tag.id)),
@@ -639,45 +686,90 @@ export function TagsView({ thoughts, tags, ...actions }: ViewProps) {
 
     const untagged = thoughts.filter((t) => (t.tags ?? []).length === 0);
     return { out, untagged };
-  }, [thoughts, tags]);
+  }, [thoughts, tags, order]);
+
+  const shown = groups.out.map((group) => group.tag.id);
+  const fromIndex = dragging ? shown.indexOf(dragging) : -1;
+
+  /** Writes a whole new order, never a fragment: a partial list would silently
+   *  re-rank every tag that wasn't on screen. */
+  function place(moved: string, target: string) {
+    if (moved === target) return;
+    const base = applyTagOrder(tags, order).map((tag) => tag.id);
+    tagOrder.set(moveTag(base, moved, target));
+  }
+
+  /** One step among the piles that are actually visible — stepping into a tag
+   *  with nothing under it would look like the key did nothing. */
+  function nudge(id: string, direction: 1 | -1) {
+    const neighbour = shown[shown.indexOf(id) + direction];
+    if (neighbour) place(id, neighbour);
+  }
+
+  function endDrag() {
+    setDragging(null);
+    setOver(null);
+  }
 
   return (
     <div className="flex flex-col gap-5">
-      {groups.out.map(({ tag, items }) => (
-        <section key={tag.id}>
-          <div className="mb-1.5 flex items-baseline gap-2 px-1.5">
-            <span
-              className="rounded-full px-2 py-0.5 text-[0.72rem]"
-              style={{
-                background: `var(--${tag.color || "iris"}-soft)`,
-                color: `var(--${tag.color || "iris"})`,
-              }}
-            >
-              {tag.name}
-            </span>
-            <span className="font-data text-[0.62rem] text-ink-faint">
-              {items.length}
-            </span>
-            <Link
-              href={`/ask?tag=${tag.id}`}
-              className="ml-auto font-data text-[0.64rem] text-ink-faint transition-colors hover:text-iris max-lg:inline-flex max-lg:h-11 max-lg:items-center max-lg:px-2 max-lg:text-[0.75rem]"
-            >
-              ask about this →
-            </Link>
-          </div>
-          <ul className="grid gap-1.5 md:grid-cols-2">
-            {items.map((thought) => (
-              <ThoughtCard
-                key={thought.id}
-                thought={thought}
-                tags={tags}
-                {...actions}
-              />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {groups.out.map(({ tag, items }, index) => {
+        const isDragging = dragging === tag.id;
+        const marked = over === tag.id && dragging !== null && !isDragging;
+        // The bar goes on the edge the pile will arrive at, so the drop is
+        // shown as a position rather than as a highlighted target.
+        const fromBelow = marked && fromIndex > index;
 
+        return (
+          <section
+            key={tag.id}
+            onDragOver={(event) => {
+              if (!dragging) return;
+              event.preventDefault();
+              setOver(tag.id);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (dragging) place(dragging, tag.id);
+              endDrag();
+            }}
+            className={`relative transition-opacity ${isDragging ? "opacity-40" : ""}`}
+          >
+            {marked && (
+              <span
+                aria-hidden="true"
+                className={`absolute inset-x-0 h-[2px] rounded-full bg-iris ${
+                  fromBelow ? "-top-2.5" : "-bottom-2.5"
+                }`}
+              />
+            )}
+
+            <TagHeading
+              tag={tag}
+              count={items.length}
+              first={index === 0}
+              last={index === groups.out.length - 1}
+              onDragStart={() => setDragging(tag.id)}
+              onDragEnd={endDrag}
+              onNudge={(direction) => nudge(tag.id, direction)}
+            />
+
+            <ul className="grid gap-1.5 md:grid-cols-2">
+              {items.map((thought) => (
+                <ThoughtCard
+                  key={thought.id}
+                  thought={thought}
+                  tags={tags}
+                  {...actions}
+                />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+
+      {/* Not a tag, so not somewhere a tag can be dropped and not something
+          that can be moved. It stays at the bottom, where the leftovers are. */}
       {groups.untagged.length > 0 && (
         <section>
           <GroupHeader label="No tag" note={String(groups.untagged.length)} />
@@ -693,6 +785,90 @@ export function TagsView({ thoughts, tags, ...actions }: ViewProps) {
           </ul>
         </section>
       )}
+    </div>
+  );
+}
+
+function TagHeading({
+  tag,
+  count,
+  first,
+  last,
+  onDragStart,
+  onDragEnd,
+  onNudge,
+}: {
+  tag: TagRecord;
+  count: number;
+  first: boolean;
+  last: boolean;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onNudge: (direction: 1 | -1) => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const tone = tag.color || "iris";
+
+  return (
+    <div
+      ref={rowRef}
+      className="group/tag mb-1.5 flex items-center gap-2 px-1.5"
+    >
+      {/* Draggable, and a button: the pointer gesture and the keyboard one are
+          the same control, so there is one thing to find rather than two. */}
+      <button
+        type="button"
+        draggable
+        aria-label={`Move ${tag.name}. Use the arrow keys, or drag.`}
+        title="Drag to reorder"
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = "move";
+          // Firefox starts no drag at all without a payload, whatever the
+          // element is.
+          event.dataTransfer.setData("text/plain", tag.id);
+          // A lone grip makes an unreadable drag image. The heading is what is
+          // actually being moved, so that is what follows the cursor.
+          if (rowRef.current) {
+            event.dataTransfer.setDragImage(rowRef.current, 12, 12);
+          }
+          onDragStart();
+        }}
+        onDragEnd={onDragEnd}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          onNudge(event.key === "ArrowDown" ? 1 : -1);
+        }}
+        className="hidden cursor-grab text-ink-faint opacity-0 transition-opacity focus-visible:opacity-100 active:cursor-grabbing group-hover/tag:opacity-100 lg:block"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+
+      <span
+        className="rounded-full px-2 py-0.5 text-[0.72rem]"
+        style={{ background: `var(--${tone}-soft)`, color: `var(--${tone})` }}
+      >
+        {tag.name}
+      </span>
+      <span className="font-data text-[0.62rem] text-ink-faint">{count}</span>
+
+      {/* A thumb has no drag-and-drop and no arrow keys, so below the desktop
+          breakpoint the same move is two taps instead of a gesture. */}
+      <span className="ml-auto flex items-center gap-1 lg:hidden">
+        <StepButton label={`Move ${tag.name} up`} disabled={first} onClick={() => onNudge(-1)}>
+          ↑
+        </StepButton>
+        <StepButton label={`Move ${tag.name} down`} disabled={last} onClick={() => onNudge(1)}>
+          ↓
+        </StepButton>
+      </span>
+
+      <Link
+        href={`/ask?tag=${tag.id}`}
+        className="font-data text-[0.64rem] text-ink-faint transition-colors hover:text-iris max-lg:inline-flex max-lg:h-11 max-lg:items-center max-lg:px-2 max-lg:text-[0.75rem] lg:ml-auto"
+      >
+        ask about this →
+      </Link>
     </div>
   );
 }

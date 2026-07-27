@@ -56,6 +56,11 @@ export default function MobileNav() {
           <Link
             key={item.href}
             href={item.href}
+            // The full route, data included, rather than the shell a dynamic
+            // route prefetches by default. The sill is on screen the whole time
+            // and these four are the whole app, so it is all wanted eventually
+            // — and a phone is exactly where a wait is least affordable.
+            prefetch
             aria-current={active ? "page" : undefined}
             className={`relative flex flex-1 flex-col items-center justify-center gap-1 transition-colors ${
               active ? "text-iris" : "text-ink-faint"

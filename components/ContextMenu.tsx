@@ -181,6 +181,7 @@ function ContextMenuContent({
 export function ContextMenuItem({
   icon,
   trailing,
+  hint,
   danger = false,
   closeOnSelect = true,
   preserveSubmenu = false,
@@ -192,6 +193,9 @@ export function ContextMenuItem({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: React.ReactNode;
   trailing?: React.ReactNode;
+  /** A quiet answer to "which one is that", set beside the label rather than
+   *  inside it — the date behind "Tomorrow", the count behind a filter. */
+  hint?: React.ReactNode;
   danger?: boolean;
   closeOnSelect?: boolean;
   preserveSubmenu?: boolean;
@@ -219,6 +223,11 @@ export function ContextMenuItem({
     >
       {icon && <ContextMenuIcon>{icon}</ContextMenuIcon>}
       <span className="min-w-0 flex-1 truncate">{children}</span>
+      {hint && (
+        <span className="shrink-0 font-data text-[0.62rem] text-ink-faint">
+          {hint}
+        </span>
+      )}
       {trailing && (
         <span
           aria-hidden="true"
@@ -264,16 +273,24 @@ export function ContextMenuSubmenu({
       </ContextMenuItem>
       {open && (
         <ContextMenuStateContext.Provider value={{ ...state, depth: state.depth + 1 }}>
+          {/* Two panels, not one wide one. The outer element is the gap: it is
+              padding rather than margin so the pointer stays inside the
+              submenu's own subtree while it crosses, which is what keeps the
+              gap from being a place the menu closes. */}
           <div
-            role="menu"
-            aria-label={ariaLabel}
-            className={`absolute top-0 w-56 rounded-xl border border-line-strong bg-surface p-1.5 shadow-[var(--shadow-window)] ${
+            className={`absolute top-0 z-10 ${
               state.submenuSide === "left"
-                ? "right-[calc(100%+0.375rem)]"
-                : "left-[calc(100%+0.375rem)]"
-            } ${className}`}
+                ? "right-full pr-2.5"
+                : "left-full pl-2.5"
+            }`}
           >
-            {children}
+            <div
+              role="menu"
+              aria-label={ariaLabel}
+              className={`w-56 rounded-xl border border-line-strong bg-surface p-1.5 shadow-[var(--shadow-window)] motion-safe:animate-[flux-unfold_120ms_ease-out] ${className}`}
+            >
+              {children}
+            </div>
           </div>
         </ContextMenuStateContext.Provider>
       )}

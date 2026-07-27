@@ -195,7 +195,7 @@ const definitions = [
       number("dump_index"),
       text("title", { max: 300 }),
       editor("body"),
-      select("status", ["open", "done", "archived"]),
+      select("status", ["open", "done", "archived", "longterm"]),
       relation("tags", ids.flux_tags, { maxSelect: 30 }),
       json("people"),
       date("action_date"),

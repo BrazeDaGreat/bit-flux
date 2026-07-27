@@ -2,6 +2,8 @@
 
 import PocketBase from "pocketbase";
 
+import { freshness } from "./freshness";
+
 export const PB_URL =
   process.env.NEXT_PUBLIC_PB_URL ?? "https://brazeapps-db.uziraze.com";
 
@@ -17,6 +19,21 @@ export function pb(): PocketBase {
 
   client = new PocketBase(PB_URL);
   client.autoCancellation(false);
+
+  /**
+   * Screens are now served from the copy the browser kept, which is only ever
+   * wrong just after something was written. Every write in the app goes through
+   * this client, so this is the one place that knows — no per-call bookkeeping,
+   * and nothing to forget to add to the next feature that saves something.
+   *
+   * It marks, it does not fetch: the next screen still paints from cache
+   * immediately and is brought up to date behind it.
+   */
+  client.beforeSend = (url, options) => {
+    const method = (options.method ?? "GET").toUpperCase();
+    if (method !== "GET") freshness.forget();
+    return { url, options };
+  };
 
   // Mirror the auth store into a cookie so server components see the session.
   client.authStore.onChange(() => {

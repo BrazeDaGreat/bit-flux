@@ -11,9 +11,10 @@ import type { ThoughtRecord } from "@/lib/types";
 export type ViewMode = "tags" | "list" | "timeline" | "calendar";
 
 /** Done and archived are different states of finished: done is a result you
- *  want to see, archived is something you chose to stop seeing. They never
- *  share a list. */
-export type Bucket = "open" | "done" | "archived";
+ *  want to see, archived is something you chose to stop seeing. Long-term is
+ *  neither — it is work you mean to do, just not this month, kept out of the
+ *  open list so the open list stays answerable. They never share a list. */
+export type Bucket = "open" | "done" | "archived" | "longterm";
 
 /** The fourth tab is not a status but a job: the thoughts the AI wasn't sure
  *  about, waiting on a decision. It sits apart from the three piles for that
@@ -114,4 +115,33 @@ export function applyFilters(
 /** Newest first, except when a date is what the view is about. */
 export function byDate(a: ThoughtRecord, b: ThoughtRecord): number {
   return (dueTime(a) ?? Infinity) - (dueTime(b) ?? Infinity);
+}
+
+/**
+ * The three dates a quick "Due" menu can mean, worked out from the day the
+ * user is standing in rather than from UTC — "tomorrow" at 23:00 on the 4th is
+ * the 5th wherever you are.
+ *
+ * Each lands on the last minute of its day: a deadline is the edge of a day,
+ * not a time of it, and `date_precision: "day"` is what stops the hour ever
+ * being read back as one the user gave.
+ */
+export function endOfDay(date: Date): string {
+  const end = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    23,
+    59,
+    0,
+    0
+  );
+  return end.toISOString();
+}
+
+/** The coming Sunday. Already Sunday means today — the week you are in is the
+ *  week that is ending. */
+export function comingSunday(now = new Date()): Date {
+  const ahead = (7 - now.getDay()) % 7;
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + ahead);
 }

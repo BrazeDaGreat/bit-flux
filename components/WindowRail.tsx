@@ -62,6 +62,13 @@ export default function WindowRail({ user }: { user: UserRecord }) {
             <Link
               key={item.href}
               href={item.href}
+              // Every screen here is a dynamic route, and the default for those
+              // is to prefetch the shell and leave the data until the click.
+              // These four are the whole app and the rail is on screen the
+              // entire time, so the data is worth having in hand before it is
+              // asked for — that is the difference between a click that paints
+              // and a click that waits.
+              prefetch
               aria-current={active ? "page" : undefined}
               className={`shrink-0 rounded-full px-2.5 py-1.5 text-[0.8rem] font-medium transition-colors max-lg:flex max-lg:h-11 max-lg:items-center max-lg:px-3.5 ${
                 active

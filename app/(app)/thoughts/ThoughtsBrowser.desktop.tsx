@@ -70,7 +70,10 @@ export default function ThoughtsBrowserDesktop({
       >
         {BUCKETS.map((option) => {
           const on = pane === option.key;
-          // The underline sits exactly on the rule below the row.
+          // The underline sits exactly on the rule below the row. Long-term
+          // keeps the sky it wears everywhere else — the ink for "far off" —
+          // so the tab and the dot on its rows say the same thing.
+          const tone = option.key === "longterm" ? "border-sky" : "border-iris";
           return (
             <button
               key={option.key}
@@ -79,7 +82,7 @@ export default function ThoughtsBrowserDesktop({
               onClick={() => viewPrefs.set({ bucket: option.key })}
               className={`flex items-baseline gap-1.5 border-b-2 pb-1.5 text-[0.88rem] transition-colors ${
                 on
-                  ? "border-iris text-ink"
+                  ? `${tone} text-ink`
                   : "border-transparent text-ink-faint hover:text-ink-soft"
               }`}
               style={{ marginBottom: "calc(-0.5rem - 1px)" }}

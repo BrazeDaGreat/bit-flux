@@ -65,24 +65,33 @@ export default function ThoughtsBrowserMobile({
 
   return (
     <div className="flex flex-col gap-3 lg:hidden">
+      {/* Four segments where there were three. At 360px that is 80px each, so
+          the labels shorten and the row is allowed to scroll rather than
+          squeezing a name until it stops being one. `min-w-max` is what makes
+          both true at once: even widths when they fit, natural widths when
+          they don't. */}
       <div
         role="group"
         aria-label="Which thoughts"
-        className="flex rounded-full border border-line-strong p-0.5"
+        className="flux-scroll flex overflow-x-auto rounded-full border border-line-strong p-0.5"
       >
         {BUCKETS.map((option) => {
           const on = pane === option.key;
+          const activeTone = option.key === "longterm"
+            ? "bg-sky-soft text-sky"
+            : "bg-iris-soft text-iris";
           return (
             <button
               key={option.key}
               type="button"
               aria-pressed={on}
+              aria-label={option.label}
               onClick={() => viewPrefs.set({ bucket: option.key })}
-              className={`tap flex flex-1 items-center justify-center gap-1.5 rounded-full text-[0.9rem] transition-colors ${
-                on ? "bg-iris-soft text-iris" : "text-ink-soft"
+              className={`tap flex min-w-max flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[0.88rem] transition-colors ${
+                on ? activeTone : "text-ink-soft"
               }`}
             >
-              {option.label}
+              {option.short}
               <span className="font-data text-[0.75rem] opacity-70">
                 {counts[option.key]}
               </span>

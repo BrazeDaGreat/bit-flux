@@ -16,6 +16,10 @@ const EMPTY_COPY: Record<Bucket, { title: string; hint: string }> = {
     title: "Nothing finished yet.",
     hint: "Tick a thought's circle and it lands here.",
   },
+  longterm: {
+    title: "Nothing long-term yet.",
+    hint: "The big ones — a project you mean to start, somewhere you mean to go. They wait here instead of ageing in your open list.",
+  },
   archived: {
     title: "The archive is empty.",
     hint: "Archiving takes a thought out of every list, and out of what Ask can see.",

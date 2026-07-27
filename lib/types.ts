@@ -30,7 +30,10 @@ export interface ThoughtRecord extends RecordModel {
   dump_index: number;
   title: string;
   body: string;
-  status: "open" | "done" | "archived";
+  /** `longterm` is not a stage of doing something — it is a decision that this
+   *  belongs to the years rather than the week, so it never crowds the open
+   *  list and never reads as finished. */
+  status: "open" | "done" | "archived" | "longterm";
   tags: string[];
   people: { name: string; collection_id?: string }[] | null;
   action_date: string;

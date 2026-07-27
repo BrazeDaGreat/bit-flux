@@ -17,12 +17,19 @@ const GO_TO: Record<string, string> = {
 const PREFETCH = [...new Set(Object.values(GO_TO))];
 
 /**
- * What `<Link>` prefetches with: the whole route when it is static, the shell
- * down to its `loading.tsx` when it is dynamic. `prefetch` requires the kind
- * but Next.js exports its enum only from an internal path, so the value is
- * spelled out and given that type through the router's own signature.
+ * The whole route, data included — not the shell down to `loading.tsx`, which
+ * is all a dynamic route gets by default and which still leaves the click
+ * waiting on the server.
+ *
+ * `g t` is meant to land on Thoughts, not on a skeleton of it, and someone who
+ * reaches for a leader key is someone moving quickly. The rail's links ask for
+ * the same thing, so a route warmed by either is warm for both.
+ *
+ * `prefetch` requires the kind, but Next.js exports its enum only from an
+ * internal path, so the value is spelled out and given that type through the
+ * router's own signature.
  */
-const AUTO = "auto" as NonNullable<
+const FULL = "full" as NonNullable<
   Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]
 >["kind"];
 
@@ -81,15 +88,15 @@ export default function Shortcuts() {
   // A shortcut has no link to hover and no viewport to enter, so nothing warms
   // these routes the way `<Link>` warms the rail's. Without this the keystroke
   // is where the request starts, and `g t` waits on a round trip that a click
-  // on "Thoughts" had already made — which is exactly backwards. Every one of
-  // these is a dynamic route, so what arrives is the shell down to its
-  // `loading.tsx` and not the data behind it: seven cheap payloads, held for
-  // the whole session and re-warmed when Next.js says they went stale.
+  // on "Thoughts" had already made — which is exactly backwards. Seven routes,
+  // fetched whole, held for the session and re-warmed the moment Next.js says
+  // one went stale, so a shortcut pressed an hour in is as quick as one pressed
+  // on arrival.
   useEffect(() => {
     let cancelled = false;
     for (const href of PREFETCH) {
       const warm = () => {
-        if (!cancelled) router.prefetch(href, { kind: AUTO, onInvalidate: warm });
+        if (!cancelled) router.prefetch(href, { kind: FULL, onInvalidate: warm });
       };
       warm();
     }

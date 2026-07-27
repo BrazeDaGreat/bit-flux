@@ -8,7 +8,7 @@ import { Caret, TagChip } from "@/components/Chips";
 import MentionField from "@/components/MentionField";
 import { pb } from "@/lib/pb";
 import { thoughtIndex } from "@/lib/thought-index";
-import { statusPatch } from "@/lib/thought-actions";
+import { statusPatch, writeError } from "@/lib/thought-actions";
 import { clockTime, relativeTime, toDate } from "@/lib/time";
 import type {
   DumpRecord,
@@ -20,6 +20,7 @@ import type {
 const STATUSES = [
   { value: "open", label: "Open", tone: "iris" },
   { value: "done", label: "Done", tone: "mint" },
+  { value: "longterm", label: "Long-term", tone: "sky" },
   { value: "archived", label: "Archived", tone: "sage" },
 ] as const;
 
@@ -87,7 +88,9 @@ export default function ThoughtEditor({
       thoughtIndex.invalidate();
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save that change");
+      // PocketBase's own message for a rejected write is "Failed to update
+      // record." — true, and useless. The field it rejected is the answer.
+      setError(writeError(err, "Couldn't save that change."));
     } finally {
       setSaving(false);
     }
@@ -503,7 +506,7 @@ function StatusControl({
             type="button"
             onClick={() => onPick(option.value)}
             aria-pressed={on}
-            className={`flex-1 rounded-full py-1 text-[0.72rem] transition-colors max-lg:h-11 max-lg:text-[0.9rem] ${
+            className={`flex-1 whitespace-nowrap rounded-full px-1 py-1 text-[0.68rem] transition-colors max-lg:h-11 max-lg:text-[0.82rem] ${
               on ? "" : "text-ink-soft hover:text-ink"
             }`}
             style={

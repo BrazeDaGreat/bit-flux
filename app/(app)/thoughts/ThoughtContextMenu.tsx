@@ -2,11 +2,17 @@
 
 import {
   Archive,
+  CalendarClock,
+  CalendarRange,
+  CalendarX2,
   CheckCircle2,
   Circle,
   ExternalLink,
   FolderOpen,
+  Sun,
+  Sunrise,
   Tag,
+  Telescope,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -23,12 +29,14 @@ import {
   useContextMenuTrigger,
 } from "@/components/ContextMenu";
 import type { TagRecord, ThoughtRecord } from "@/lib/types";
+import { comingSunday, dueValue, endOfDay } from "./filters";
 
 interface ThoughtContextMenuOptions {
   thought: ThoughtRecord;
   tags: TagRecord[];
   onStatus: (id: string, status: ThoughtRecord["status"]) => void;
   onToggleTag: (id: string, tagId: string) => void;
+  onDue: (id: string, value: string | null) => void;
   onDelete: (id: string) => void;
 }
 
@@ -37,11 +45,12 @@ interface ThoughtContextMenuOptions {
  * dismissal, submenus, and visual primitives live in the shared component.
  */
 export function useThoughtContextMenu(options: ThoughtContextMenuOptions) {
-  const { thought, tags, onStatus, onToggleTag, onDelete } = options;
+  const { thought, tags, onStatus, onToggleTag, onDue, onDelete } = options;
   const { point, close, contextMenuProps } =
     useContextMenuTrigger<HTMLElement>();
   const router = useRouter();
   const href = `/thoughts/${thought.id}`;
+  const dated = Boolean(dueValue(thought));
 
   // "Open" is the same navigation the row's own link performs, so it warms the
   // route the same way — but only once the menu is up. This hook runs for every
@@ -94,6 +103,43 @@ export function useThoughtContextMenu(options: ThoughtContextMenuOptions) {
           )}
         </ContextMenuSubmenu>
 
+        {/*
+          The three answers a date question almost always has. Anything else is
+          a real decision and belongs on the thought's own page, where there is
+          a picker and the rest of the context.
+
+          Taking a date off leads, because it is the one destructive move here
+          and the one you arrive at the menu already meaning to make.
+        */}
+        <ContextMenuSubmenu
+          id="due"
+          label="Due"
+          ariaLabel="Set when this is due"
+          icon={<CalendarClock />}
+        >
+          {dated && (
+            <>
+              <ContextMenuItem
+                icon={<CalendarX2 />}
+                onClick={() => onDue(thought.id, null)}
+              >
+                Clear due
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+            </>
+          )}
+          {dueChoices().map((choice) => (
+            <ContextMenuItem
+              key={choice.label}
+              icon={choice.icon}
+              hint={choice.note}
+              onClick={() => onDue(thought.id, choice.value)}
+            >
+              {choice.label}
+            </ContextMenuItem>
+          ))}
+        </ContextMenuSubmenu>
+
         <ContextMenuSubmenu
           id="tags"
           label="Tags"
@@ -132,6 +178,48 @@ export function useThoughtContextMenu(options: ThoughtContextMenuOptions) {
   };
 }
 
+/**
+ * Today, tomorrow, and the end of the week — worked out at open time, so a tab
+ * left up overnight never offers yesterday.
+ *
+ * Sunday drops out when it is already one of the other two. Two rows that write
+ * the same date is a menu asking you to choose between identical answers.
+ */
+function dueChoices(): {
+  label: string;
+  note: string;
+  value: string;
+  icon: React.ReactNode;
+}[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  const sunday = comingSunday(now);
+  const short = (date: Date) =>
+    date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
+  const out = [
+    { label: "Today", note: short(today), value: endOfDay(today), icon: <Sun /> },
+    {
+      label: "Tomorrow",
+      note: short(tomorrow),
+      value: endOfDay(tomorrow),
+      icon: <Sunrise />,
+    },
+  ];
+
+  if (sunday.getTime() > tomorrow.getTime()) {
+    out.push({
+      label: "By Sunday",
+      note: short(sunday),
+      value: endOfDay(sunday),
+      icon: <CalendarRange />,
+    });
+  }
+
+  return out;
+}
+
 const STATUS_OPTIONS: {
   value: ThoughtRecord["status"];
   label: string;
@@ -139,5 +227,6 @@ const STATUS_OPTIONS: {
 }[] = [
   { value: "open", label: "Open", icon: <Circle /> },
   { value: "done", label: "Done", icon: <CheckCircle2 /> },
+  { value: "longterm", label: "Long-term", icon: <Telescope /> },
   { value: "archived", label: "Archived", icon: <Archive /> },
 ];
