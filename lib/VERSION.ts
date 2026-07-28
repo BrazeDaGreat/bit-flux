@@ -1,4 +1,4 @@
-export const VERSION = "v0.5.0 (26.07.27)";
+export const VERSION = "v0.5.1 (26.07.28)";
 
 export interface ChangelogEntry {
   added?: string[];
@@ -21,6 +21,15 @@ export interface ChangelogEntry {
  * no lists inside a line, since one line already is a list item.
  */
 export const CHANGELOG: Record<string, ChangelogEntry> = {
+  "v0.5.1 (26.07.28)": {
+    added: [
+      "Right-click anywhere outside a thought for quick access to **Open PiP**, **Re-fetch Data**, **Refresh Page** and the **Keyboard Shortcuts** guide",
+      "Right-click **Capture**, **Thoughts**, **Tags & people** or **Ask** to open that screen here without reloading the app, or open it in a new tab",
+    ],
+    fixed: [
+      "Thought right-click submenus now move back inside the window when they would otherwise run off an edge",
+    ],
+  },
   "v0.5.0 (26.07.27)": {
     added: [
       "A **Long-term** pile beside Open, Done and Archived — for the big ones: a project you mean to start, somewhere you mean to go. They wait there instead of ageing in your open list",

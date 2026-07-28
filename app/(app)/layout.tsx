@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import AppWindow from "@/components/AppWindow";
+import AppContextMenu from "@/components/AppContextMenu";
 import MobileBar from "@/components/MobileBar";
 import MobileNav from "@/components/MobileNav";
 import FreshData from "@/components/FreshData";
@@ -31,6 +32,7 @@ export default async function AppLayout({
       }
       nav={<MobileNav />}
     >
+      <AppContextMenu />
       <Shortcuts />
       {/* Screens are served from the browser's own copy and brought up to date
           behind the paint. In the layout because it has to watch the route

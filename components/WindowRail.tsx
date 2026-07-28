@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Wind } from "lucide-react";
+import { ExternalLink, FolderOpen, Wind } from "lucide-react";
 
+import {
+  ContextMenu,
+  ContextMenuItem,
+  useContextMenuTrigger,
+} from "@/components/ContextMenu";
 import { clearAuth } from "@/lib/pb";
 import type { UserRecord } from "@/lib/types";
 import AccountSheet from "./AccountSheet";
@@ -59,25 +64,11 @@ export default function WindowRail({ user }: { user: UserRecord }) {
               ? pathname === "/"
               : pathname.startsWith(item.href);
           return (
-            <Link
+            <RailNavigationLink
               key={item.href}
-              href={item.href}
-              // Every screen here is a dynamic route, and the default for those
-              // is to prefetch the shell and leave the data until the click.
-              // These four are the whole app and the rail is on screen the
-              // entire time, so the data is worth having in hand before it is
-              // asked for — that is the difference between a click that paints
-              // and a click that waits.
-              prefetch
-              aria-current={active ? "page" : undefined}
-              className={`shrink-0 rounded-full px-2.5 py-1.5 text-[0.8rem] font-medium transition-colors max-lg:flex max-lg:h-11 max-lg:items-center max-lg:px-3.5 ${
-                active
-                  ? "bg-iris-soft text-iris"
-                  : "text-ink-soft hover:bg-surface-3 hover:text-ink"
-              }`}
-            >
-              {item.label}
-            </Link>
+              {...item}
+              active={active}
+            />
           );
         })}
       </nav>
@@ -151,5 +142,57 @@ export default function WindowRail({ user }: { user: UserRecord }) {
         </div>
       </div>
     </header>
+  );
+}
+
+function RailNavigationLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  const router = useRouter();
+  const { point, close, contextMenuProps } =
+    useContextMenuTrigger<HTMLAnchorElement>();
+
+  return (
+    <>
+      <Link
+        href={href}
+        // Every screen here is a dynamic route, and the default for those is to
+        // prefetch the shell and leave the data until the click. These four are
+        // the whole app and the rail is on screen the entire time, so the data
+        // is worth having in hand before it is asked for.
+        prefetch
+        aria-current={active ? "page" : undefined}
+        className={`shrink-0 rounded-full px-2.5 py-1.5 text-[0.8rem] font-medium transition-colors max-lg:flex max-lg:h-11 max-lg:items-center max-lg:px-3.5 ${
+          active
+            ? "bg-iris-soft text-iris"
+            : "text-ink-soft hover:bg-surface-3 hover:text-ink"
+        }`}
+        {...contextMenuProps}
+      >
+        {label}
+      </Link>
+
+      <ContextMenu
+        point={point}
+        onClose={close}
+        ariaLabel={`Open ${label}`}
+      >
+        <ContextMenuItem icon={<FolderOpen />} onClick={() => router.push(href)}>
+          Open
+        </ContextMenuItem>
+        <ContextMenuItem
+          icon={<ExternalLink />}
+          onClick={() => window.open(href, "_blank", "noopener,noreferrer")}
+        >
+          Open in New Tab
+        </ContextMenuItem>
+      </ContextMenu>
+    </>
   );
 }

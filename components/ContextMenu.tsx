@@ -257,6 +257,36 @@ export function ContextMenuSubmenu({
 }) {
   const state = useContextMenuState();
   const open = state.openSubmenu === id;
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  // Side selection keeps the submenu beside its parent in the common case.
+  // Its height is content-dependent, though — notably for a long Tags list —
+  // so measure the real panel and make the same final viewport correction the
+  // root menu makes. Both axes are clamped because a narrow window may not
+  // have a full menu width left on either nominal side.
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current) return;
+
+    const rect = menuRef.current.getBoundingClientRect();
+    const padding = 8;
+    const left = Math.max(
+      padding,
+      Math.min(rect.left, window.innerWidth - rect.width - padding)
+    );
+    const top = Math.max(
+      padding,
+      Math.min(rect.top, window.innerHeight - rect.height - padding)
+    );
+    const x = left - rect.left;
+    const y = top - rect.top;
+
+    if (x === 0 && y === 0) return;
+    setOffset((current) => ({
+      x: current.x + x,
+      y: current.y + y,
+    }));
+  }, [open]);
 
   return (
     <div className="relative" onMouseEnter={() => state.setOpenSubmenu(id)}>
@@ -283,8 +313,12 @@ export function ContextMenuSubmenu({
                 ? "right-full pr-2.5"
                 : "left-full pl-2.5"
             }`}
+            style={{
+              transform: `translate(${offset.x}px, ${offset.y}px)`,
+            }}
           >
             <div
+              ref={menuRef}
               role="menu"
               aria-label={ariaLabel}
               className={`w-56 rounded-xl border border-line-strong bg-surface p-1.5 shadow-[var(--shadow-window)] motion-safe:animate-[flux-unfold_120ms_ease-out] ${className}`}

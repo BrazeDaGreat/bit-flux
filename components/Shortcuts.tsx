@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { shortcutsStore } from "@/lib/shortcuts-store";
+
 const GO_TO: Record<string, string> = {
   d: "/",
   c: "/",
@@ -84,6 +86,11 @@ export default function Shortcuts() {
   const leader = useRef(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(
+    () => shortcutsStore.subscribe(() => setShortcutsOpen(true)),
+    []
+  );
 
   // A shortcut has no link to hover and no viewport to enter, so nothing warms
   // these routes the way `<Link>` warms the rail's. Without this the keystroke
