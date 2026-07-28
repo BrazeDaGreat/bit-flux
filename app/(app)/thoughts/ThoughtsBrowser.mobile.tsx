@@ -7,6 +7,7 @@ import type { Filters } from "./filters";
 import { FilterButton, ViewButton } from "./MobileFilters";
 import ReviewQueue from "./ReviewQueue";
 import { Empty } from "./shared";
+import ThoughtsBucketActions from "./ThoughtsBucketActions";
 import type { ThoughtsBrowserState } from "./useThoughtsBrowser";
 import { BUCKETS, WHEN } from "./useThoughtsBrowser";
 import { CalendarView, ListView, TagsView, TimelineView } from "./views";
@@ -59,6 +60,9 @@ export default function ThoughtsBrowserMobile({
     applied,
     inBucket,
     move,
+    moveAll,
+    removeAll,
+    bulkBusy,
     viewProps,
     onReviewResolved,
   } = state;
@@ -81,12 +85,16 @@ export default function ThoughtsBrowserMobile({
             ? "bg-sky-soft text-sky"
             : "bg-iris-soft text-iris";
           return (
-            <button
+            <ThoughtsBucketActions
               key={option.key}
-              type="button"
-              aria-pressed={on}
-              aria-label={option.label}
-              onClick={() => viewPrefs.set({ bucket: option.key })}
+              bucket={option.key}
+              label={option.label}
+              count={counts[option.key]}
+              active={on}
+              busy={bulkBusy}
+              onSelect={() => viewPrefs.set({ bucket: option.key })}
+              onMoveAll={moveAll}
+              onRemoveAll={removeAll}
               className={`tap flex min-w-max flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-[0.88rem] transition-colors ${
                 on ? activeTone : "text-ink-soft"
               }`}
@@ -95,7 +103,7 @@ export default function ThoughtsBrowserMobile({
               <span className="font-data text-[0.75rem] opacity-70">
                 {counts[option.key]}
               </span>
-            </button>
+            </ThoughtsBucketActions>
           );
         })}
       </div>

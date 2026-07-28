@@ -128,6 +128,8 @@ export function useThoughtsBrowser({
    * carrying its state.
    */
   const [writing, setWriting] = useState<ReadonlySet<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkBusyRef = useRef(false);
 
   const mark = useCallback((id: string, busy: boolean) => {
     setWriting((prev) => {
@@ -306,6 +308,121 @@ export function useThoughtsBrowser({
     [items, router]
   );
 
+  const moveAll = useCallback(
+    async (from: Bucket, status: Bucket) => {
+      if (bulkBusyRef.current || from === status) return;
+      const moving = items.filter((thought) => thought.status === from);
+      if (moving.length === 0) return;
+
+      bulkBusyRef.current = true;
+      setBulkBusy(true);
+      setError(null);
+      setUndo(null);
+      moving.forEach((thought) => mark(thought.id, true));
+      setItems((prev) =>
+        prev.map((thought) =>
+          thought.status === from
+            ? {
+                ...thought,
+                status,
+                ...(status === "archived"
+                  ? { embedding: null, embedding_model: "" }
+                  : {}),
+              }
+            : thought
+        )
+      );
+
+      const results = await Promise.allSettled(
+        moving.map((thought) => setStatus(thought.id, status))
+      );
+      const failed = moving.filter((_, index) => results[index].status === "rejected");
+
+      if (failed.length > 0) {
+        const originals = new Map(failed.map((thought) => [thought.id, thought]));
+        setItems((prev) =>
+          prev.map((thought) => originals.get(thought.id) ?? thought)
+        );
+        const firstFailure = results.find(
+          (result): result is PromiseRejectedResult => result.status === "rejected"
+        );
+        setError(
+          writeError(
+            firstFailure?.reason,
+            failed.length === 1
+              ? "One thought couldn't be moved."
+              : `${failed.length} thoughts couldn't be moved.`
+          )
+        );
+      }
+
+      moving.forEach((thought) => mark(thought.id, false));
+      bulkBusyRef.current = false;
+      setBulkBusy(false);
+      router.refresh();
+    },
+    [items, mark, router]
+  );
+
+  const removeAll = useCallback(
+    async (bucketToRemove: Bucket) => {
+      if (bulkBusyRef.current) return;
+      const removing = items.filter(
+        (thought) => thought.status === bucketToRemove
+      );
+      if (removing.length === 0) return;
+
+      bulkBusyRef.current = true;
+      setBulkBusy(true);
+      setError(null);
+      setUndo(null);
+      removing.forEach((thought) => mark(thought.id, true));
+      setItems((prev) =>
+        prev.filter((thought) => thought.status !== bucketToRemove)
+      );
+
+      const results = await Promise.allSettled(
+        removing.map((thought) => deleteThought(thought.id))
+      );
+      const failed = removing.filter(
+        (_, index) => results[index].status === "rejected"
+      );
+
+      if (failed.length > 0) {
+        const order = new Map(items.map((thought, index) => [thought.id, index]));
+        setItems((prev) =>
+          [
+            ...prev,
+            ...failed.filter(
+              (thought) => !prev.some((current) => current.id === thought.id)
+            ),
+          ].sort(
+            (a, b) =>
+              (order.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+              (order.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+          )
+        );
+        const firstFailure = results.find(
+          (result): result is PromiseRejectedResult => result.status === "rejected"
+        );
+        setError(
+          writeError(
+            firstFailure?.reason,
+            failed.length === 1
+              ? "One thought couldn't be removed."
+              : `${failed.length} thoughts couldn't be removed.`
+          )
+        );
+      }
+
+      removing.forEach((thought) => mark(thought.id, false));
+      bulkBusyRef.current = false;
+      setBulkBusy(false);
+      router.refresh();
+    },
+    [items, mark, router]
+  );
+
   /** Typing filters what's here; Enter also asks the server, which can match
    *  on meaning rather than on the words you typed. */
   const searchMeaning = useCallback(
@@ -415,6 +532,9 @@ export function useThoughtsBrowser({
     applied,
     inBucket,
     move,
+    moveAll,
+    removeAll,
+    bulkBusy,
     viewProps,
     onReviewResolved,
   };

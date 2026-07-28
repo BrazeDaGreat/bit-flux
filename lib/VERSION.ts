@@ -1,4 +1,4 @@
-export const VERSION = "v0.5.1 (26.07.28)";
+export const VERSION = "v0.5.2 (26.07.28)";
 
 export interface ChangelogEntry {
   added?: string[];
@@ -21,6 +21,12 @@ export interface ChangelogEntry {
  * no lists inside a line, since one line already is a list item.
  */
 export const CHANGELOG: Record<string, ChangelogEntry> = {
+  "v0.5.2 (26.07.28)": {
+    added: [
+      "The page right-click menu now includes **Copy** for selected text and **Paste** wherever you are writing",
+      "Right-click **Open**, **Done**, **Long-term** or **Archived** in Thoughts to move the whole pile somewhere else, or remove it after typing `CONFIRM`",
+    ],
+  },
   "v0.5.1 (26.07.28)": {
     added: [
       "Right-click anywhere outside a thought for quick access to **Open PiP**, **Re-fetch Data**, **Refresh Page** and the **Keyboard Shortcuts** guide",

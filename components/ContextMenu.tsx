@@ -183,6 +183,7 @@ export function ContextMenuItem({
   trailing,
   hint,
   danger = false,
+  disabled = false,
   closeOnSelect = true,
   preserveSubmenu = false,
   children,
@@ -206,12 +207,16 @@ export function ContextMenuItem({
     <button
       type="button"
       role="menuitem"
+      disabled={disabled}
       className={`group/menu flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors focus-visible:outline-none ${
-        danger
+        disabled
+          ? "cursor-not-allowed text-ink-faint opacity-40"
+          : danger
           ? "text-ink-faint hover:bg-blush-soft hover:text-blush focus-visible:bg-blush-soft focus-visible:text-blush"
           : "text-ink-soft hover:bg-surface-2 hover:text-ink focus-visible:bg-surface-2 focus-visible:text-ink"
       } ${className}`}
       onMouseEnter={(event) => {
+        if (disabled) return;
         if (!preserveSubmenu && state.depth === 0) state.setOpenSubmenu(null);
         onMouseEnter?.(event);
       }}

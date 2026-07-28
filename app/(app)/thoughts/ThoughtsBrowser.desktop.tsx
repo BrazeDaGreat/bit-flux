@@ -7,6 +7,7 @@ import { EMPTY_FILTERS, type ViewMode, type WhenKey } from "./filters";
 import QuickFilter from "./QuickFilter";
 import ReviewQueue from "./ReviewQueue";
 import { Empty, ViewIcon } from "./shared";
+import ThoughtsBucketActions from "./ThoughtsBucketActions";
 import type { ThoughtsBrowserState } from "./useThoughtsBrowser";
 import { BUCKETS, VIEWS, WHEN } from "./useThoughtsBrowser";
 import { CalendarView, ListView, TagsView, TimelineView } from "./views";
@@ -53,6 +54,9 @@ export default function ThoughtsBrowserDesktop({
     applied,
     inBucket,
     move,
+    moveAll,
+    removeAll,
+    bulkBusy,
     viewProps,
     onReviewResolved,
     setMatches,
@@ -75,11 +79,16 @@ export default function ThoughtsBrowserDesktop({
           // so the tab and the dot on its rows say the same thing.
           const tone = option.key === "longterm" ? "border-sky" : "border-iris";
           return (
-            <button
+            <ThoughtsBucketActions
               key={option.key}
-              type="button"
-              aria-pressed={on}
-              onClick={() => viewPrefs.set({ bucket: option.key })}
+              bucket={option.key}
+              label={option.label}
+              count={counts[option.key]}
+              active={on}
+              busy={bulkBusy}
+              onSelect={() => viewPrefs.set({ bucket: option.key })}
+              onMoveAll={moveAll}
+              onRemoveAll={removeAll}
               className={`flex items-baseline gap-1.5 border-b-2 pb-1.5 text-[0.88rem] transition-colors ${
                 on
                   ? `${tone} text-ink`
@@ -91,7 +100,7 @@ export default function ThoughtsBrowserDesktop({
               <span className="font-data text-[0.66rem] opacity-70">
                 {counts[option.key]}
               </span>
-            </button>
+            </ThoughtsBucketActions>
           );
         })}
 
