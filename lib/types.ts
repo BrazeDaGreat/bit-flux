@@ -180,6 +180,9 @@ export interface Citation {
   id: string;
   title: string;
   snippet: string;
+  /** The `[n]` marker used in an Ask answer. Older stored chats predate this
+   *  field, so the renderer keeps a content-based fallback for them. */
+  number?: number;
 }
 
 export interface MessageRecord extends RecordModel {

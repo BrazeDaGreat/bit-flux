@@ -1,4 +1,4 @@
-export const VERSION = "v0.5.2 (26.07.28)";
+export const VERSION = "v0.5.3 (26.07.28)";
 
 export interface ChangelogEntry {
   added?: string[];
@@ -21,6 +21,17 @@ export interface ChangelogEntry {
  * no lists inside a line, since one line already is a list item.
  */
 export const CHANGELOG: Record<string, ChangelogEntry> = {
+  "v0.5.3 (26.07.28)": {
+    added: [
+      "Answers in **Ask** now render Markdown, including bold and italic text, headings, lists, links, quotes, code and tables",
+    ],
+    changed: [
+      "**Ask** now treats Open as active work and Long-term as intentionally deferred, keeping future ideas out of current priorities and overdue lists unless you ask for them",
+    ],
+    fixed: [
+      "Numbered citations in **Ask** now consistently appear as links to the right thought, including citations in existing chat history",
+    ],
+  },
   "v0.5.2 (26.07.28)": {
     added: [
       "The page right-click menu now includes **Copy** for selected text and **Paste** wherever you are writing",
