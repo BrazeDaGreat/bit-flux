@@ -1,4 +1,4 @@
-export const VERSION = "v0.5.3 (26.07.28)";
+export const VERSION = "v0.5.4 (26.08.04)";
 
 export interface ChangelogEntry {
   added?: string[];
@@ -21,6 +21,12 @@ export interface ChangelogEntry {
  * no lists inside a line, since one line already is a list item.
  */
 export const CHANGELOG: Record<string, ChangelogEntry> = {
+  "v0.5.4 (26.08.04)": {
+    added: [
+      "Answers in **Ask** now appear as they are written, so you can start reading instead of waiting for the whole response",
+      "The popout note window now uses **Fira Code** for a focused, monospaced writing space",
+    ],
+  },
   "v0.5.3 (26.07.28)": {
     added: [
       "Answers in **Ask** now render Markdown, including bold and italic text, headings, lists, links, quotes, code and tables",

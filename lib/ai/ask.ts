@@ -1,5 +1,6 @@
-import { chat, type ProviderConfig } from "./provider";
+import { chat, streamChat, type ProviderConfig } from "./provider";
 import { plainMentions } from "../mentions";
+import { createReasoningFilter, stripReasoning } from "../text";
 import type { Citation, DumpRecord, ThoughtRecord } from "../types";
 import type { SearchHit } from "../search";
 
@@ -94,6 +95,72 @@ export async function askQuestion(
 
   // Only the thoughts actually cited become links, so a reference always
   // points at something the answer used.
+  const cited = new Set(
+    [...answer.matchAll(/\[(\d+)\]/g)]
+      .map((match) => Number(match[1]))
+      .filter((n) => n >= 1 && n <= context.hits.length)
+  );
+
+  const citations: Citation[] = [...cited]
+    .sort((a, b) => a - b)
+    .map((number) => {
+      const thought = context.hits[number - 1].thought;
+      return {
+        kind: "thought",
+        id: thought.id,
+        title: thought.title,
+        snippet: thought.body.slice(0, 160),
+        number,
+      };
+    });
+
+  return { answer, citations };
+}
+
+/** Stream the answer text while keeping citation extraction and persistence
+ *  decisions at the end, once the model has produced its complete answer. */
+export async function streamQuestion(
+  config: ProviderConfig,
+  question: string,
+  context: AskContext,
+  onText: (text: string) => void
+): Promise<{ answer: string; citations: Citation[] }> {
+  if (context.hits.length === 0) {
+    const answer =
+      "Nothing you've written matches that. Try different words, or widen the filters.";
+    onText(answer);
+    return { answer, citations: [] };
+  }
+
+  const rawParts: string[] = [];
+  const filter = createReasoningFilter();
+  let visible = "";
+
+  for await (const chunk of streamChat(config, {
+    system: `${SYSTEM}\n\nToday is ${context.now.toISOString().slice(0, 10)}.`,
+    user: `Thoughts:\n\n${buildContext(context)}\n\nQuestion: ${question}`,
+    temperature: 0.3,
+    maxTokens: 1200,
+  })) {
+    rawParts.push(chunk);
+    const text = filter.push(chunk);
+    if (text) {
+      visible += text;
+      onText(text);
+    }
+  }
+
+  const tail = filter.finish();
+  if (tail) {
+    visible += tail;
+    onText(tail);
+  }
+
+  const answer = stripReasoning(rawParts.join(""));
+  // A response made entirely of reasoning is retained by stripReasoning as a
+  // last-resort answer, matching the non-streaming behavior.
+  if (!visible && answer) onText(answer);
+
   const cited = new Set(
     [...answer.matchAll(/\[(\d+)\]/g)]
       .map((match) => Number(match[1]))

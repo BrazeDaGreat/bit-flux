@@ -131,10 +131,7 @@ export interface ChatOptions {
   maxTokens?: number;
 }
 
-export async function chat(
-  config: ProviderConfig,
-  options: ChatOptions
-): Promise<string> {
+function chatBody(config: ProviderConfig, options: ChatOptions) {
   const body: Record<string, unknown> = {
     model: config.model,
     messages: [
@@ -145,6 +142,30 @@ export async function chat(
   };
   if (options.maxTokens) body.max_tokens = options.maxTokens;
   if (options.json) body.response_format = { type: "json_object" };
+  return body;
+}
+
+async function providerErrorResponse(res: Response): Promise<ProviderError> {
+  const text = await res.text();
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    return new ProviderError(text.slice(0, 300), res.status);
+  }
+
+  const err = parsed.error as { message?: string } | undefined;
+  return new ProviderError(
+    err?.message ?? `Request failed (${res.status})`,
+    res.status
+  );
+}
+
+export async function chat(
+  config: ProviderConfig,
+  options: ChatOptions
+): Promise<string> {
+  const body = chatBody(config, options);
 
   let data: Record<string, unknown>;
   try {
@@ -167,6 +188,104 @@ export async function chat(
   // Reasoning models talk to themselves first. That belongs to the model, not
   // to the person reading the answer — and it breaks JSON parsing downstream.
   return stripReasoning(content);
+}
+
+/**
+ * Read the OpenAI-compatible SSE stream used by all supported chat providers.
+ * The route turns these provider chunks into a small app-owned protocol so the
+ * browser never needs to know which provider is answering.
+ */
+export async function* streamChat(
+  config: ProviderConfig,
+  options: ChatOptions
+): AsyncGenerator<string> {
+  const body = chatBody(config, options);
+  body.stream = true;
+
+  const res = await fetch(`${resolveBaseUrl(config)}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      Authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) throw await providerErrorResponse(res);
+  if (!res.body) throw new ProviderError("The provider returned no stream", 502);
+
+  // Some custom OpenAI-compatible endpoints ignore `stream: true` and return
+  // the normal completion object. Keep those connections usable, while still
+  // preferring real SSE whenever the endpoint advertises it.
+  if (!(res.headers.get("content-type") ?? "").includes("text/event-stream")) {
+    let data: {
+      choices?: { message?: { content?: string | null } }[];
+    };
+    try {
+      data = (await res.json()) as typeof data;
+    } catch {
+      throw new ProviderError("The provider returned an unreadable response", 502);
+    }
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new ProviderError("The model returned no content", 502);
+    yield content;
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let yielded = false;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const data = line.startsWith("data:") ? line.slice(5).trim() : "";
+      if (!data) continue;
+      if (data === "[DONE]") return;
+
+      let parsed: {
+        choices?: { delta?: { content?: string | null } }[];
+      };
+      try {
+        parsed = JSON.parse(data) as typeof parsed;
+      } catch {
+        throw new ProviderError("The provider returned an unreadable stream", 502);
+      }
+
+      const content = parsed.choices?.[0]?.delta?.content;
+      if (content) {
+        yielded = true;
+        yield content;
+      }
+    }
+
+    if (done) break;
+  }
+
+  // A few compatible endpoints omit the final newline before closing.
+  const data = buffer.startsWith("data:") ? buffer.slice(5).trim() : "";
+  if (data && data !== "[DONE]") {
+    try {
+      const parsed = JSON.parse(data) as {
+        choices?: { delta?: { content?: string | null } }[];
+      };
+      const content = parsed.choices?.[0]?.delta?.content;
+      if (content) {
+        yielded = true;
+        yield content;
+      }
+    } catch {
+      throw new ProviderError("The provider returned an unreadable stream", 502);
+    }
+  }
+  if (!yielded) throw new ProviderError("The model returned no content", 502);
 }
 
 export async function listModels(config: ProviderConfig): Promise<string[]> {

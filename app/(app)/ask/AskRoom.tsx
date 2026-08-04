@@ -39,6 +39,29 @@ import ChatSidebar, { ChatList, type ChatSummary } from "./ChatSidebar";
 const SIDEBAR_KEY = "flux.ask.chats-open";
 const sidebarListeners = new Set<() => void>();
 
+type AskResponse = {
+  answer?: string;
+  citations?: Citation[];
+  chat_id?: string;
+  mode?: string;
+  note?: string;
+  error?: string;
+  needs_key?: boolean;
+  needs_model?: boolean;
+};
+
+type AskStreamEvent =
+  | { type: "delta"; text: string }
+  | {
+      type: "done";
+      answer: string;
+      citations?: Citation[];
+      chat_id: string;
+      mode?: string;
+      note?: string;
+    }
+  | { type: "error"; error: string };
+
 function readSidebar(): boolean {
   return localStorage.getItem(SIDEBAR_KEY) === "1";
 }
@@ -224,6 +247,7 @@ export default function AskRoom({
 
     setQuestion("");
     setError(null);
+    setNeedsKey(false);
     setBusy(true);
     setTurns((prev) => [...prev, { role: "user", content: q }]);
 
@@ -242,42 +266,115 @@ export default function AskRoom({
             : undefined,
         }),
       });
-      const data = (await res.json()) as {
-        answer?: string;
-        citations?: Citation[];
-        chat_id?: string;
-        mode?: string;
-        note?: string;
-        error?: string;
-        needs_key?: boolean;
-        needs_model?: boolean;
-      };
-
-      if (!res.ok || !data.answer) {
-        setNeedsKey(Boolean(data.needs_key));
-        setError(data.error ?? "Couldn't answer that");
-        return;
-      }
-
-      if (data.chat_id && data.chat_id !== chatId) {
-        setChatId(data.chat_id);
-        syncUrl(data.chat_id);
+      function acceptChat(id?: string) {
+        if (!id || id === chatId) return;
+        setChatId(id);
+        syncUrl(id);
         // The question is the chat's title, same as the server names it.
         setChats((prev) => [
-          { id: data.chat_id!, title: q.slice(0, 80), created: new Date().toISOString() },
+          { id, title: q.slice(0, 80), created: new Date().toISOString() },
           ...prev,
         ]);
       }
-      setTurns((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.answer!,
-          citations: data.citations ?? [],
-          mode: data.mode,
-          note: data.note,
-        },
-      ]);
+
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!res.body || !contentType.includes("application/x-ndjson")) {
+        const data = (await res.json().catch(() => ({}))) as AskResponse;
+        if (!res.ok || !data.answer) {
+          setNeedsKey(Boolean(data.needs_key));
+          setError(data.error ?? "Couldn't answer that");
+          return;
+        }
+        acceptChat(data.chat_id);
+        setTurns((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.answer!,
+            citations: data.citations ?? [],
+            mode: data.mode,
+            note: data.note,
+          },
+        ]);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamedAnswer = "";
+      let streamError: string | null = null;
+      let completed: Extract<AskStreamEvent, { type: "done" }> | null = null;
+
+      // Put the answer in the transcript immediately; deltas replace this
+      // placeholder as they arrive instead of waiting for the final event.
+      setTurns((prev) => [...prev, { role: "assistant", content: "" }]);
+
+      function handleLine(line: string) {
+        if (!line.trim()) return;
+        const event = JSON.parse(line) as AskStreamEvent;
+
+        if (event.type === "delta") {
+          streamedAnswer += event.text;
+          setTurns((prev) => {
+            const index = prev.length - 1;
+            const last = prev[index];
+            if (!last || last.role !== "assistant") return prev;
+            const next = [...prev];
+            next[index] = { ...last, content: streamedAnswer };
+            return next;
+          });
+        } else if (event.type === "done") {
+          completed = event;
+        } else if (event.type === "error") {
+          streamError = event.error;
+        }
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() ?? "";
+        for (const line of lines) handleLine(line);
+        if (done) break;
+      }
+      if (buffer.trim()) handleLine(buffer);
+
+      if (streamError) {
+        // Keep a useful partial answer if one arrived, but remove an empty
+        // placeholder so an interrupted request does not leave a blank turn.
+        if (!streamedAnswer) {
+          setTurns((prev) => {
+            const last = prev[prev.length - 1];
+            return last?.role === "assistant" && !last.content
+              ? prev.slice(0, -1)
+              : prev;
+          });
+        }
+        setError(streamError);
+        return;
+      }
+      // TypeScript cannot observe assignments made from the nested line
+      // parser, so make the post-read narrowing explicit here.
+      const finished = completed as Extract<AskStreamEvent, { type: "done" }> | null;
+      if (!finished) throw new Error("The answer stream ended unexpectedly");
+
+      acceptChat(finished.chat_id);
+      setTurns((prev) => {
+        const index = prev.length - 1;
+        const last = prev[index];
+        if (!last || last.role !== "assistant") return prev;
+        const next = [...prev];
+        next[index] = {
+          ...last,
+          content: finished.answer,
+          citations: finished.citations ?? [],
+          mode: finished.mode,
+          note: finished.note,
+        };
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't answer that");
     } finally {

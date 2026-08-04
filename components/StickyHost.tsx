@@ -162,5 +162,5 @@ function adopt(target: Window) {
   // rest.
   target.document.body.style.margin = "0";
   target.document.body.style.background = "var(--paper)";
-  target.document.body.style.fontFamily = "var(--font-ui)";
+  target.document.body.style.fontFamily = "var(--font-sticky)";
 }

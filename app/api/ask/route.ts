@@ -7,7 +7,7 @@ import {
   MissingProviderError,
   resolveChatConfig,
 } from "@/lib/providers-server";
-import { askQuestion } from "@/lib/ai/ask";
+import { streamQuestion } from "@/lib/ai/ask";
 import { ProviderError } from "@/lib/ai/provider";
 import { mentionIds, numberMentions, plainMentions } from "@/lib/mentions";
 import { searchThoughts, type SearchHit } from "@/lib/search";
@@ -120,46 +120,87 @@ export async function POST(request: Request) {
       for (const dump of records) dumps.set(dump.id, dump);
     }
 
-    const { answer, citations } = await askQuestion(config, forModel, {
-      hits,
-      dumps,
-      now: new Date(),
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        function send(payload: unknown) {
+          try {
+            controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+          } catch {
+            // The browser may leave the page while the provider is still
+            // answering. Persistence can finish, but there is no client left
+            // to notify in that case.
+          }
+        }
+
+        try {
+          const { answer, citations } = await streamQuestion(
+            config,
+            forModel,
+            { hits, dumps, now: new Date() },
+            (text) => send({ type: "delta", text })
+          );
+
+          // Persist the exchange so the conversation survives a reload.
+          let chatId = body.chat_id ?? "";
+          if (!chatId) {
+            const chat = await client.collection("flux_chats").create<ChatRecord>({
+              user: user.id,
+              title: asked.slice(0, 80),
+              scope: body.scope ?? null,
+            });
+            chatId = chat.id;
+          }
+
+          await client.collection("flux_messages").create({
+            user: user.id,
+            chat: chatId,
+            role: "user",
+            content: question,
+          });
+          const saved = await client.collection("flux_messages").create({
+            user: user.id,
+            chat: chatId,
+            role: "assistant",
+            content: answer,
+            citations,
+            model_used: config.model,
+          });
+
+          send({
+            type: "done",
+            chat_id: chatId,
+            message_id: saved.id,
+            answer,
+            citations,
+            mode: search.mode,
+            note: search.note,
+            used: hits.length,
+          });
+        } catch (err) {
+          const message =
+            err instanceof ProviderError
+              ? err.message
+              : err instanceof Error
+                ? err.message
+                : "Couldn't answer that";
+          send({ type: "error", error: message });
+        } finally {
+          try {
+            controller.close();
+          } catch {
+            // The client disconnected before the stream completed.
+          }
+        }
+      },
     });
 
-    // Persist the exchange so the conversation survives a reload.
-    let chatId = body.chat_id ?? "";
-    if (!chatId) {
-      const chat = await client.collection("flux_chats").create<ChatRecord>({
-        user: user.id,
-        title: asked.slice(0, 80),
-        scope: body.scope ?? null,
-      });
-      chatId = chat.id;
-    }
-
-    await client.collection("flux_messages").create({
-      user: user.id,
-      chat: chatId,
-      role: "user",
-      content: question,
-    });
-    const saved = await client.collection("flux_messages").create({
-      user: user.id,
-      chat: chatId,
-      role: "assistant",
-      content: answer,
-      citations,
-      model_used: config.model,
-    });
-
-    return NextResponse.json({
-      chat_id: chatId,
-      message_id: saved.id,
-      answer,
-      citations,
-      mode: search.mode,
-      note: search.note,
-      used: hits.length,
+    return new Response(stream, {
+      headers: {
+        "Cache-Control": "no-cache, no-transform",
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "X-Accel-Buffering": "no",
+      },
     });
   } catch (err) {
     const message =

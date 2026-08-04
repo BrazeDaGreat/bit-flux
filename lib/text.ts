@@ -28,3 +28,78 @@ export function stripReasoning(text: string): string {
   out = out.trim();
   return out || text.replace(MARKERS, "").trim();
 }
+
+/**
+ * Removes reasoning tags as text arrives from a streaming model. Incomplete
+ * tags stay buffered until the next chunk, so a model cannot briefly expose
+ * its private reasoning before the closing tag arrives.
+ */
+export function createReasoningFilter() {
+  let pending = "";
+  let insideReasoning = false;
+
+  function read(final: boolean): string {
+    let output = "";
+    let cursor = 0;
+
+    while (cursor < pending.length) {
+      const rest = pending.slice(cursor);
+
+      if (insideReasoning) {
+        const closing = rest.match(
+          new RegExp(`^</(?:${REASONING})\\s*>`, "i")
+        );
+        if (!closing) {
+          if (!final) {
+            pending = rest;
+            return output;
+          }
+          pending = "";
+          return output;
+        }
+        insideReasoning = false;
+        cursor += closing[0].length;
+        continue;
+      }
+
+      if (rest[0] !== "<") {
+        output += rest[0];
+        cursor += 1;
+        continue;
+      }
+
+      const end = rest.indexOf(">");
+      if (end === -1) {
+        if (!final) {
+          pending = rest;
+          return output;
+        }
+        output += rest;
+        break;
+      }
+
+      const tag = rest.slice(0, end + 1);
+      if (new RegExp(`^<(?:${REASONING})\\b[^>]*>$`, "i").test(tag)) {
+        insideReasoning = true;
+        cursor += tag.length;
+        continue;
+      }
+
+      output += rest[0];
+      cursor += 1;
+    }
+
+    pending = "";
+    return output;
+  }
+
+  return {
+    push(chunk: string) {
+      pending += chunk;
+      return read(false);
+    },
+    finish() {
+      return read(true);
+    },
+  };
+}

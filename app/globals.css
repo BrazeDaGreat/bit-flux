@@ -290,6 +290,7 @@
   --font-hand: var(--font-newsreader), Georgia, serif;
   --font-ui: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-data: var(--font-dm-mono), ui-monospace, monospace;
+  --font-sticky: var(--font-fira-code, "Fira Code"), ui-monospace, monospace;
 
   --radius-window: 26px;
   --shadow-window: var(--window-shadow);
@@ -428,6 +429,17 @@
   .bare-field:focus-visible {
     outline: none;
   }
+}
+
+/* The popout is a note left beside the work, not another screen of prose.
+   Keep every register in it on the same monospaced voice, including the
+   existing utility classes used for its labels and writing field. */
+.sticky-window,
+.sticky-window .font-hand,
+.sticky-window .font-data,
+.sticky-window button,
+.sticky-window textarea {
+  font-family: var(--font-sticky);
 }
 
 /* The window's own scroll area — keep the scrollbar quiet so the frame reads

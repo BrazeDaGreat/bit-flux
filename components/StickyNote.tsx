@@ -86,7 +86,7 @@ export default function StickyNote({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex h-dvh flex-col bg-paper">
+    <div className="sticky-window flex h-dvh flex-col bg-paper">
       {/* The gum strip. */}
       <div
         aria-hidden="true"
