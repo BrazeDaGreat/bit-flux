@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Bundled locally so the sticky window does not depend on a system install or
+   a separate popup document reaching a font CDN. */
+@font-face {
+  font-family: "Fira Code";
+  src: url("/fonts/FiraCode-VF.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 /* The plan documents are prose *about* classes — Tailwind scanning them mints
    utilities nothing renders. */
 @source not "../PLAN_RESPONSIVENESS";
@@ -290,7 +300,7 @@
   --font-hand: var(--font-newsreader), Georgia, serif;
   --font-ui: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
   --font-data: var(--font-dm-mono), ui-monospace, monospace;
-  --font-sticky: var(--font-fira-code, "Fira Code"), ui-monospace, monospace;
+  --font-sticky: "Fira Code", ui-monospace, monospace;
 
   --radius-window: 26px;
   --shadow-window: var(--window-shadow);
@@ -440,6 +450,15 @@
 .sticky-window button,
 .sticky-window textarea {
   font-family: var(--font-sticky);
+}
+
+.sticky-window {
+  font-variant-ligatures: common-ligatures contextual;
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+.sticky-window textarea::selection {
+  color: transparent;
 }
 
 /* The window's own scroll area — keep the scrollbar quiet so the frame reads

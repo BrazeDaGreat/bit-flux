@@ -1,10 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Bricolage_Grotesque,
-  DM_Mono,
-  Fira_Code,
-  Newsreader,
-} from "next/font/google";
+import { Bricolage_Grotesque, DM_Mono, Newsreader } from "next/font/google";
 
 import { themeScript } from "@/lib/theme";
 import "./globals.css";
@@ -25,12 +20,6 @@ const dmMono = DM_Mono({
   variable: "--font-dm-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
-  display: "swap",
-});
-
-const firaCode = Fira_Code({
-  variable: "--font-fira-code",
-  subsets: ["latin"],
   display: "swap",
 });
 
@@ -74,7 +63,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${bricolage.variable} ${newsreader.variable} ${dmMono.variable} ${firaCode.variable}`}
+      className={`${bricolage.variable} ${newsreader.variable} ${dmMono.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

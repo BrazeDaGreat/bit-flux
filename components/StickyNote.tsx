@@ -33,6 +33,7 @@ export default function StickyNote({ userId }: { userId: string }) {
   const [saved, setSaved] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewScrollTop, setPreviewScrollTop] = useState(0);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -52,7 +53,9 @@ export default function StickyNote({ userId }: { userId: string }) {
     setSaving(true);
     setError(null);
     setText("");
+    setPreviewScrollTop(0);
     fieldRef.current?.focus();
+    fieldRef.current?.scrollTo({ top: 0 });
 
     try {
       const dump = await pb().collection("flux_dumps").create<DumpRecord>({
@@ -117,21 +120,34 @@ export default function StickyNote({ userId }: { userId: string }) {
         </p>
       </div>
 
-      <textarea
-        ref={fieldRef}
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-            event.preventDefault();
-            void save();
-          }
-        }}
-        spellCheck={false}
-        placeholder="jot it down…"
-        aria-label="Write a thought"
-        className="flux-scroll min-h-0 flex-1 resize-none bg-transparent px-3.5 py-1 font-hand text-[1.02rem] leading-[1.55] text-ink outline-none placeholder:text-ink-faint"
-      />
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {/* Native textareas can defer contextual ligature shaping until a line
+            is committed. This layer is the visible copy; the textarea remains
+            on top for native input, caret, selection and clipboard behavior. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words px-3.5 py-1 font-sticky text-[1.02rem] leading-[1.55] text-ink"
+          style={{ transform: `translateY(-${previewScrollTop}px)` }}
+        >
+          {text || <span className="text-ink-faint">jot it down…</span>}
+        </div>
+        <textarea
+          ref={fieldRef}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onScroll={(event) => setPreviewScrollTop(event.currentTarget.scrollTop)}
+          onKeyDown={(event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+              event.preventDefault();
+              void save();
+            }
+          }}
+          spellCheck={false}
+          placeholder=""
+          aria-label="Write a thought"
+          className="flux-scroll relative z-10 h-full w-full resize-none bg-transparent px-3.5 py-1 font-sticky text-[1.02rem] leading-[1.55] text-transparent caret-ink outline-none placeholder:text-transparent"
+        />
+      </div>
 
       <div className="flex items-center gap-2 px-3 pb-3 pt-1.5">
         <span className="font-data text-[0.62rem] text-ink-faint">

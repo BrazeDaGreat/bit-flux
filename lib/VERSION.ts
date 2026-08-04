@@ -1,4 +1,4 @@
-export const VERSION = "v0.5.4 (26.08.04)";
+export const VERSION = "v0.5.4.a";
 
 export interface ChangelogEntry {
   added?: string[];
@@ -25,6 +25,11 @@ export const CHANGELOG: Record<string, ChangelogEntry> = {
     added: [
       "Answers in **Ask** now appear as they are written, so you can start reading instead of waiting for the whole response",
       "The popout note window now uses **Fira Code** for a focused, monospaced writing space",
+    ],
+    fixed: [
+      "The popout now loads Fira Code directly, even when the font is not installed on the computer",
+      "Fira Code ligatures in the popout now keep working as you continue typing",
+      "Popout ligatures now refresh immediately while you type instead of waiting for a line break",
     ],
   },
   "v0.5.3 (26.07.28)": {
